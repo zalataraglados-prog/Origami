@@ -10,7 +10,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1003.0",
@@ -41,6 +43,10 @@
     "eslint-config-next": "^16.1.6",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "flatted": "^3.4.1"
   }
 }

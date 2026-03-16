@@ -12,7 +12,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "audit": "npm audit",
+    "audit:prod": "npm audit --omit=dev"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1003.0",

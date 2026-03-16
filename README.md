@@ -105,11 +105,60 @@ npm run dev
 ```bash
 npm run dev
 npm run build
+npm run test
+npm run test:watch
+npm run lint
+npx tsc --noEmit
+npm run audit
+npm run audit:prod
 npm run db:generate
 npm run db:push
 npm run db:migrate
 npm run db:studio
 ```
+
+## 测试与质量门禁
+
+项目现在包含一组最小单元测试，覆盖以下稳定工具模块：
+
+- `src/lib/crypto.ts`
+- `src/lib/format.ts`
+- `src/lib/r2.ts`
+- `src/lib/auth.ts`
+
+本地建议在提交前执行：
+
+```bash
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
+对应的 GitHub Actions CI 也会在 `push` / `pull_request` 上执行相同的质量门禁：
+
+- `npm test`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+
+## 依赖安全说明
+
+当前仓库区分两类依赖风险：
+
+1. **生产依赖风险**
+   - 使用 `npm run audit:prod` 检查
+   - 当前目标是保持生产依赖审计为 0 高危 / 0 中危
+
+2. **开发工具链风险**
+   - 使用 `npm run audit` 检查全部依赖
+   - 目前剩余风险主要来自 `drizzle-kit -> @esbuild-kit/* -> esbuild` 这条**开发期工具链**
+   - 这不会进入运行时产物，但仍然值得持续跟踪升级
+
+已做的安全加固：
+
+- 通过 `overrides` 将 `flatted` 固定到安全版本 `^3.4.1`
+- 目前 `npm audit --omit=dev` 已可通过
 
 ## 页面与接口概览
 

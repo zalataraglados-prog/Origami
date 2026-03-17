@@ -118,9 +118,11 @@ Origami 在自己的数据库中保存这些本地状态：
 - `local_snooze_until`
 - `local_labels`
 
-重要的是：这些状态**不会回写**到 Gmail、Outlook 或 QQ。
+重要的是：这些本地分拣字段**不会回写**到 Gmail、Outlook 或 QQ。
 
-因此 Origami 更像是在外部邮箱之上叠加了一层本地生产力视图。
+Read / Star 则单独处理：对于支持的提供商，可以在账号级开启异步回写；即使写回失败，也只按 best-effort 处理，不阻塞本地分拣。
+
+因此 Origami 更像是在外部邮箱之上叠加了一层本地生产力视图，只在值得增加复杂度的状态上做选择性同步。
 
 ## 6. 发信流程
 
@@ -190,7 +192,7 @@ Origami 当前聚焦于：
 
 暂未实现：
 
-- 将分拣状态回写到 provider
+- 将 Done / Archive / Snooze / 标签回写到 provider
 - QQ 发信
 - draft 同步
 - thread-aware 回复 / 转发

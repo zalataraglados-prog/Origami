@@ -109,6 +109,7 @@ Origami 当前请求的 Outlook scopes 包括：
 - `email`
 - `User.Read`
 - `Mail.Read`
+- `Mail.ReadWrite`
 - `Mail.Send`
 - `offline_access`
 
@@ -192,6 +193,6 @@ Authorization: Bearer <CRON_SECRET>
 ## 10. 已知部署注意事项
 
 - QQ 发信尚未实现
-- 分拣状态仅保存在 Origami 本地
+- Done / Archive / Snooze 仍只保存在 Origami 本地；Read / Star 回写是可选能力，并依赖正确的 provider scopes
 - Outlook 发信在当前实现下仍限制单个附件小于 3 MB
 - provider 回调 URL 必须与实际配置的应用 URL 完全一致

@@ -109,6 +109,7 @@ Origami currently requests these Outlook scopes:
 - `email`
 - `User.Read`
 - `Mail.Read`
+- `Mail.ReadWrite`
 - `Mail.Send`
 - `offline_access`
 
@@ -192,6 +193,6 @@ Authorization: Bearer <CRON_SECRET>
 ## 10. Known deployment caveats
 
 - QQ sending is not implemented
-- triage state stays local to Origami
+- Done / Archive / Snooze stay local to Origami; Read / Star write-back is optional and requires the right provider scopes
 - Outlook compose is currently limited to single attachments smaller than 3 MB
 - provider callback URLs must exactly match the configured app URL

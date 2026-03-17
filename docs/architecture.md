@@ -118,9 +118,11 @@ Origami stores triage state in its own database:
 - `local_snooze_until`
 - `local_labels`
 
-Important: these states are **not written back** to Gmail, Outlook, or QQ.
+Important: these local triage fields are **not written back** to Gmail, Outlook, or QQ.
 
-That means Origami behaves like a local productivity layer on top of external inboxes.
+Read / Star are handled separately: supported providers can opt into asynchronous write-back at the account level, while failures are treated as non-blocking best-effort sync.
+
+That means Origami behaves like a local productivity layer on top of external inboxes, with selective mailbox-state synchronization where it is worth the complexity.
 
 ## 6. Sending flow
 
@@ -190,7 +192,7 @@ Origami currently focuses on:
 
 It does **not** currently implement:
 
-- provider write-back for triage state
+- provider write-back for Done / Archive / Snooze / labels
 - QQ sending
 - draft sync
 - thread-aware replies / forwards

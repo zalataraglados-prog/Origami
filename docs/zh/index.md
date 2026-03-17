@@ -19,8 +19,8 @@ hero:
 features:
   - title: 统一收件箱
     details: 将多个账号的近期收件邮件聚合到同一条时间线中。
-  - title: 本地化分拣
-    details: Done、Archive、Snooze 仅保存在 Origami 本地，不会回写到邮件服务商。
+  - title: 本地优先分拣
+    details: Done、Archive、Snooze 仍只保存在 Origami 本地；Read / Star 则可按账号选择是否回写到支持的提供商。
   - title: 最小可用发信流程
     details: 可通过 Gmail 和 Outlook 撰写并发送新邮件，同时保留本地已发送记录。
   - title: R2 附件存储
@@ -50,7 +50,9 @@ Origami 会把一些状态仅保存在自己的数据库里，而不是回写到
 - Snooze
 - 本地已发送历史
 
-这样做的好处是分拣逻辑更快、更统一，也不依赖某一家邮件提供商；代价是这些状态只存在于 Origami 内部。
+但 Read / Star 不同：对于支持的提供商，在开启对应账号级开关后，可以选择性回写。
+
+这样做既能保持核心分拣逻辑更快、更统一，也允许你在需要时把部分邮箱状态同步回原邮箱。
 
 ## 阅读文档
 

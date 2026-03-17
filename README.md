@@ -31,7 +31,7 @@
 
 - Unified inbox across multiple accounts, sorted by time
 - Gmail / Outlook OAuth + QQ IMAP account connection
-- Local triage states: **Done / Archive / Snooze** (not written back to providers)
+- Local triage states: **Done / Archive / Snooze** stay inside Origami, while **Read / Star** can optionally write back to supported providers
 - Structured search syntax: `account:` / `from:` / `subject:` / `is:read` / `is:done` / `is:snoozed`
 - Gmail / Outlook sending support for new emails (minimal viable compose flow)
 - Attachments stored in Cloudflare R2, metadata stored in Turso
@@ -42,7 +42,7 @@
 
 ## 🚫 Known Limitations / 当前限制
 
-- Local triage state is **Origami-only** and is not written back to Gmail / Outlook / QQ
+- **Done / Archive / Snooze** remain local to Origami; **Read / Star** write-back is optional and scope-dependent
 - QQ Mail is **read-only** for now; sending is not implemented
 - Single attachment must stay **under 3 MB** (Outlook compatibility limit in current implementation)
 - No thread-aware reply / forward flow yet

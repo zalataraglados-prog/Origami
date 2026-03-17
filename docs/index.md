@@ -19,8 +19,8 @@ hero:
 features:
   - title: Unified inbox
     details: Aggregate recent inbox mail from multiple accounts into one timeline.
-  - title: Local triage
-    details: Done, Archive, and Snooze are stored locally and never written back to providers.
+  - title: Local-first triage
+    details: Done, Archive, and Snooze stay local to Origami, while Read / Star can optionally write back to supported providers.
   - title: Minimal sending flow
     details: Compose and send new emails through Gmail and Outlook, with local sent history.
   - title: R2-backed attachments
@@ -50,7 +50,9 @@ Origami keeps several states inside its own database instead of pushing them bac
 - Snooze
 - Local sent-message history
 
-This makes triage fast and provider-agnostic, but it also means those states only exist inside Origami.
+Read / Star are different: for supported providers, they can optionally be written back when the corresponding account-level toggle is enabled.
+
+This keeps the core triage model fast and provider-agnostic, while still allowing selected mailbox state to stay in sync when you want it.
 
 ## Read the docs
 

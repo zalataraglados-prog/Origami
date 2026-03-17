@@ -24,10 +24,10 @@
 | `R2_BUCKET_NAME` | 是 | 附件 bucket |
 | `R2_ENDPOINT` | 是 | R2 的 S3-compatible endpoint |
 | `R2_ACCOUNT_ID` | 否 | 当前运行时代码未使用 |
-| `GMAIL_CLIENT_ID` | 启用 Gmail 时需要 | Google OAuth client ID |
-| `GMAIL_CLIENT_SECRET` | 启用 Gmail 时需要 | Google OAuth client secret |
-| `OUTLOOK_CLIENT_ID` | 启用 Outlook 时需要 | Microsoft OAuth client ID |
-| `OUTLOOK_CLIENT_SECRET` | 启用 Outlook 时需要 | Microsoft OAuth client secret |
+| `GMAIL_CLIENT_ID` | 使用环境变量默认 Gmail 应用时需要 | Google OAuth client ID |
+| `GMAIL_CLIENT_SECRET` | 使用环境变量默认 Gmail 应用时需要 | Google OAuth client secret |
+| `OUTLOOK_CLIENT_ID` | 使用环境变量默认 Outlook 应用时需要 | Microsoft OAuth client ID |
+| `OUTLOOK_CLIENT_SECRET` | 使用环境变量默认 Outlook 应用时需要 | Microsoft OAuth client secret |
 
 ## 1. 准备应用密钥
 
@@ -90,6 +90,11 @@ R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 
 ## 4. 配置 Gmail OAuth
 
+Origami 当前支持两种 Gmail OAuth 应用来源：
+
+- 通过 `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` 提供的**环境变量默认应用**
+- 在 `/accounts` 页面里管理的 **数据库应用**
+
 Origami 当前实际需要的 Gmail 能力包括：
 
 - `https://www.googleapis.com/auth/gmail.modify`
@@ -102,6 +107,11 @@ Origami 当前实际需要的 Gmail 能力包括：
 - 生产：`https://your-domain/api/oauth/gmail`
 
 ## 5. 配置 Outlook OAuth
+
+Origami 当前支持两种 Outlook OAuth 应用来源：
+
+- 通过 `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET` 提供的**环境变量默认应用**
+- 在 `/accounts` 页面里管理的 **数据库应用**
 
 Origami 当前请求的 Outlook scopes 包括：
 
@@ -151,7 +161,8 @@ npm run dev
 1. 打开 `http://localhost:3000`
 2. 使用 `ACCESS_TOKEN` 登录
 3. 打开 `/accounts`
-4. 连接 Gmail / Outlook / IMAP/SMTP 邮箱
+4. （可选）先在 `/accounts` 中创建数据库版 Gmail / Outlook OAuth 应用
+5. 连接 Gmail / Outlook / IMAP/SMTP 邮箱
 
 ## 8. Vercel 部署流程
 

@@ -24,10 +24,10 @@ Recommended stack:
 | `R2_BUCKET_NAME` | Yes | Attachment bucket |
 | `R2_ENDPOINT` | Yes | R2 S3-compatible endpoint |
 | `R2_ACCOUNT_ID` | No | Not used by runtime today |
-| `GMAIL_CLIENT_ID` | If Gmail is enabled | Google OAuth client ID |
-| `GMAIL_CLIENT_SECRET` | If Gmail is enabled | Google OAuth client secret |
-| `OUTLOOK_CLIENT_ID` | If Outlook is enabled | Microsoft OAuth client ID |
-| `OUTLOOK_CLIENT_SECRET` | If Outlook is enabled | Microsoft OAuth client secret |
+| `GMAIL_CLIENT_ID` | Optional if you use the env-backed default Gmail app | Google OAuth client ID |
+| `GMAIL_CLIENT_SECRET` | Optional if you use the env-backed default Gmail app | Google OAuth client secret |
+| `OUTLOOK_CLIENT_ID` | Optional if you use the env-backed default Outlook app | Microsoft OAuth client ID |
+| `OUTLOOK_CLIENT_SECRET` | Optional if you use the env-backed default Outlook app | Microsoft OAuth client secret |
 
 ## 1. Prepare application secrets
 
@@ -90,6 +90,11 @@ R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 
 ## 4. Configure Gmail OAuth
 
+Origami supports two Gmail OAuth app sources:
+
+- **default env-backed app** via `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET`
+- **DB-backed apps** managed inside `/accounts`
+
 Origami currently asks for these effective Gmail capabilities:
 
 - `https://www.googleapis.com/auth/gmail.modify`
@@ -102,6 +107,11 @@ Callback URL:
 - production: `https://your-domain/api/oauth/gmail`
 
 ## 5. Configure Outlook OAuth
+
+Origami supports two Outlook OAuth app sources:
+
+- **default env-backed app** via `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET`
+- **DB-backed apps** managed inside `/accounts`
 
 Origami currently requests these Outlook scopes:
 
@@ -151,7 +161,8 @@ Then:
 1. open `http://localhost:3000`
 2. sign in with `ACCESS_TOKEN`
 3. open `/accounts`
-4. connect Gmail / Outlook / IMAP/SMTP mailboxes
+4. (optional) create DB-backed Gmail / Outlook OAuth apps in `/accounts`
+5. connect Gmail / Outlook / IMAP/SMTP mailboxes
 
 ## 8. Vercel deployment flow
 

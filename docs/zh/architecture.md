@@ -23,8 +23,8 @@ Binary attachments
   -> Cloudflare R2
 
 Mail providers
-  -> Gmail API
-  -> Microsoft Graph
+  -> Gmail API / OAuth 应用解析器（env 或 DB）
+  -> Microsoft Graph / OAuth 应用解析器（env 或 DB）
   -> IMAP/SMTP 预设（QQ / 163 / 126 / Yeah / custom）
 
 Scheduled sync
@@ -156,6 +156,7 @@ Compose form
 主要表：
 
 - `accounts`
+- `oauth_apps`
 - `emails`
 - `attachments`
 - `compose_uploads`
@@ -175,7 +176,7 @@ R2 主要存储：
 ## 8. 安全边界
 
 - Provider 凭据在写入数据库前会先经过 **AES-256-GCM** 加密
-- OAuth client secret 只保留在服务端
+- OAuth client secret 只保留在服务端；若存入 `oauth_apps`，也会先做 AES 加密
 - QQ 授权码不会进入客户端 bundle
 - `CRON_SECRET` 保护定时同步接口
 - 附件访问通过数据库查找 + 服务端流式输出来控制
@@ -193,7 +194,7 @@ Origami 当前聚焦于：
 暂未实现：
 
 - 将 Done / Archive / Snooze / 标签回写到 provider
-- QQ 发信
+- 将 Done / Archive / Snooze / 标签回写到 provider
 - draft 同步
 - thread-aware 回复 / 转发
 - 多用户角色或 workspace 能力

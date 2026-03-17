@@ -23,8 +23,8 @@ Binary attachments
   -> Cloudflare R2
 
 Mail providers
-  -> Gmail API
-  -> Microsoft Graph
+  -> Gmail API / OAuth app resolver (env or DB)
+  -> Microsoft Graph / OAuth app resolver (env or DB)
   -> IMAP/SMTP presets (QQ / 163 / 126 / Yeah / custom)
 
 Scheduled sync
@@ -156,6 +156,7 @@ Current limitations:
 Main tables:
 
 - `accounts`
+- `oauth_apps`
 - `emails`
 - `attachments`
 - `compose_uploads`
@@ -175,7 +176,7 @@ Clients never receive raw R2 object keys directly; downloads are proxied by the 
 ## 8. Security boundaries
 
 - Provider credentials are encrypted with **AES-256-GCM** before database storage
-- OAuth client secrets stay server-side only
+- OAuth client secrets stay server-side only and are AES-encrypted when stored in `oauth_apps`
 - QQ auth codes never ship to the client bundle
 - `CRON_SECRET` protects scheduled sync
 - Attachment access is mediated through database lookup + server streaming
@@ -193,7 +194,7 @@ Origami currently focuses on:
 It does **not** currently implement:
 
 - provider write-back for Done / Archive / Snooze / labels
-- QQ sending
+- provider write-back for Done / Archive / Snooze / labels
 - draft sync
 - thread-aware replies / forwards
 - multi-user roles or workspace features

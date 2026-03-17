@@ -31,6 +31,7 @@
 
 - Unified inbox across multiple accounts, sorted by time
 - Gmail / Outlook OAuth + domestic IMAP/SMTP account connection (QQ / 163 / 126 / Yeah / custom)
+- OAuth apps support both env-backed defaults and DB-managed app configs with per-account reauthorization
 - Local triage states: **Done / Archive / Snooze** stay inside Origami, while **Read / Star** can optionally write back to supported providers
 - Structured search syntax: `account:` / `from:` / `subject:` / `is:read` / `is:done` / `is:snoozed`
 - Gmail / Outlook / IMAP/SMTP sending support for new emails (minimal viable compose flow)
@@ -105,10 +106,10 @@ Recommended production stack:
 | `R2_BUCKET_NAME` | Yes | Bucket used for inbound and compose attachments |
 | `R2_ENDPOINT` | Yes | R2 S3-compatible endpoint |
 | `R2_ACCOUNT_ID` | No | Currently unused by runtime code; kept for ops reference |
-| `GMAIL_CLIENT_ID` | When Gmail is enabled | Google OAuth client ID |
-| `GMAIL_CLIENT_SECRET` | When Gmail is enabled | Google OAuth client secret |
-| `OUTLOOK_CLIENT_ID` | When Outlook is enabled | Microsoft OAuth client ID |
-| `OUTLOOK_CLIENT_SECRET` | When Outlook is enabled | Microsoft OAuth client secret |
+| `GMAIL_CLIENT_ID` | Optional if using only DB-backed Gmail apps | Google OAuth client ID for the default env-backed app |
+| `GMAIL_CLIENT_SECRET` | Optional if using only DB-backed Gmail apps | Google OAuth client secret for the default env-backed app |
+| `OUTLOOK_CLIENT_ID` | Optional if using only DB-backed Outlook apps | Microsoft OAuth client ID for the default env-backed app |
+| `OUTLOOK_CLIENT_SECRET` | Optional if using only DB-backed Outlook apps | Microsoft OAuth client secret for the default env-backed app |
 
 See also: [`docs/deployment.md`](./docs/deployment.md)
 

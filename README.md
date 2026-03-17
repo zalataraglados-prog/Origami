@@ -50,69 +50,63 @@
 - No remote draft sync yet
 - Inbox sync is focused on recent inbox mail, not full mailbox mirroring
 
-## 🚀 Quick Start / 快速开始
+## 🚀 Golden Path / 单一路径
 
-### Environment setup
+If you just want Origami running, use this path and ignore the older migration history.
+
+### 1. Install and create `.env`
 
 ```bash
 cp .env.example .env
 npm install
-```
-
-Generate a 32-byte hex encryption key:
-
-```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Fill in `.env`, then initialize the database:
+Put the generated 64-char hex value into `ENCRYPTION_KEY`, then fill the rest of `.env`.
+
+Minimum groups you usually need:
+
+- **App:** `NEXT_PUBLIC_APP_URL`, `ACCESS_TOKEN`, `CRON_SECRET`, `ENCRYPTION_KEY`
+- **Database:** `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`
+- **Storage:** `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`
+- **Optional OAuth defaults:** `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET`, `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET`
+
+Full variable reference lives in [`docs/deployment.md`](./docs/deployment.md).
+
+### 2. Initialize the database
 
 ```bash
 npm run db:setup
 ```
 
-For a fresh database, `db:setup` is the recommended one-command path. Keep `db:migrate` for replaying the historical migration chain or upgrading an existing environment.
+For a brand-new database, this is the only command you should need. `db:migrate` is kept for historical replay / upgrade scenarios.
 
-Start local development:
+### 3. Run locally or deploy
+
+**Local dev**
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`, sign in with `ACCESS_TOKEN`, then add accounts from `/accounts`.
+Then open `http://localhost:3000`, sign in with `ACCESS_TOKEN`, and add accounts from `/accounts`.
 
-### One-click deploy on Vercel
+**Production**
+
+- Deploy to **Vercel**
+- Use **Turso/libSQL** for DB
+- Use **Cloudflare R2** for attachments
+- Reuse the same `db:setup` path on the target database
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/theLucius7/Origami)
 
-Recommended production stack:
+### 4. Verify before shipping
 
-- **Frontend + server runtime:** Vercel
-- **Database:** Turso / libSQL
-- **Attachment storage:** Cloudflare R2
-- **OAuth / provider APIs:** Google Gmail API, Microsoft Graph, generic IMAP/SMTP presets (QQ / 163 / 126 / Yeah / custom)
+```bash
+npm run verify
+```
 
-## ⚙️ Environment Variables / 环境变量
-
-| Variable | Required | Description |
-|---|---:|---|
-| `NEXT_PUBLIC_APP_URL` | Yes | Public app URL used for OAuth callback URLs |
-| `ACCESS_TOKEN` | Yes | Single-user login token |
-| `CRON_SECRET` | Yes | Bearer secret for `/api/cron/sync` |
-| `ENCRYPTION_KEY` | Yes | 64-char hex key for AES-256-GCM credential encryption |
-| `TURSO_DATABASE_URL` | Yes | Turso / libSQL database URL |
-| `TURSO_AUTH_TOKEN` | Yes | Turso auth token |
-| `R2_ACCESS_KEY_ID` | Yes | Cloudflare R2 access key |
-| `R2_SECRET_ACCESS_KEY` | Yes | Cloudflare R2 secret key |
-| `R2_BUCKET_NAME` | Yes | Bucket used for inbound and compose attachments |
-| `R2_ENDPOINT` | Yes | R2 S3-compatible endpoint |
-| `R2_ACCOUNT_ID` | No | Currently unused by runtime code; kept for ops reference |
-| `GMAIL_CLIENT_ID` | Optional if using only DB-backed Gmail apps | Google OAuth client ID for the default env-backed app |
-| `GMAIL_CLIENT_SECRET` | Optional if using only DB-backed Gmail apps | Google OAuth client secret for the default env-backed app |
-| `OUTLOOK_CLIENT_ID` | Optional if using only DB-backed Outlook apps | Microsoft OAuth client ID for the default env-backed app |
-| `OUTLOOK_CLIENT_SECRET` | Optional if using only DB-backed Outlook apps | Microsoft OAuth client secret for the default env-backed app |
-
-See also: [`docs/deployment.md`](./docs/deployment.md)
+That runs lint + typecheck + tests + app build + docs build in one path.
 
 ## 🏗 Architecture / 架构
 
@@ -137,46 +131,20 @@ Vercel Cron
 
 See the full architecture write-up: [`docs/architecture.md`](./docs/architecture.md)
 
-## 🧪 Development / 开发
+## 🧪 Useful Commands / 常用命令
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Start Next.js development server |
-| `npm run build` | Production build |
-| `npm run start` | Start built app |
-| `npm run test` | Run Vitest test suite |
-| `npm run lint` | Run ESLint |
-| `npm run audit:prod` | Audit production dependencies only |
-| `npm run db:setup` | Recommended one-command setup for a fresh database |
-| `npm run db:migrate` | Replay the historical migration chain |
+| `npm run dev` | Start local development |
+| `npm run verify` | Full validation path before shipping |
+| `npm run db:setup` | Recommended fresh-database bootstrap |
+| `npm run db:migrate` | Historical migration replay |
 | `npm run db:push` | Push current schema with SQLite FTS-safe wrapper |
 | `npm run db:studio` | Open Drizzle Studio |
-| `npm run docs:dev` | Start VitePress docs locally |
-| `npm run docs:build` | Build GitHub Pages docs site |
+| `npm run docs:dev` | Start docs locally |
+| `npm run docs:build` | Build docs site |
 
-Current validation baseline used in CI:
-
-```bash
-npm test
-npm run lint
-npx tsc --noEmit
-npm run build
-npm run docs:build
-```
-
-## 📦 Deployment / 部署
-
-### Vercel + Turso + R2
-
-1. Create a Turso database and auth token
-2. Create a Cloudflare R2 bucket and S3-compatible credentials
-3. Configure Gmail / Outlook OAuth apps if you want those providers
-4. Add environment variables in Vercel
-5. For a fresh deployment, run `npm run db:setup` against the target database (use `npm run db:migrate` only if you explicitly want to replay the full migration history)
-6. Deploy the app to Vercel
-7. Let `vercel.json` trigger scheduled sync every 15 minutes
-
-Detailed deployment guide: [`docs/deployment.md`](./docs/deployment.md)
+For deployment details, environment variables, and provider setup, go straight to [`docs/deployment.md`](./docs/deployment.md).
 
 ## 🔒 Security / 安全
 

@@ -2,6 +2,8 @@
 
 This guide documents the **actual deployment model implemented in code today**.
 
+If you want the shortest path: fill `.env`, run `npm run db:setup`, deploy to Vercel, then connect accounts from `/accounts`.
+
 Recommended stack:
 
 - **App runtime**: Vercel

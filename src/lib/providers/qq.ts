@@ -44,6 +44,37 @@ export class QQProvider implements EmailProvider {
     this.creds = creds;
   }
 
+  private createClient() {
+    const config = getQqProviderConfig();
+    return new ImapFlow({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: this.creds.email,
+        pass: this.creds.authCode,
+      },
+      logger: false,
+    });
+  }
+
+  private async withInboxClient<T>(fn: (client: ImapFlow) => Promise<T>): Promise<T> {
+    const client = this.createClient();
+
+    try {
+      await client.connect();
+      const lock = await client.getMailboxLock("INBOX");
+
+      try {
+        return await fn(client);
+      } finally {
+        lock.release();
+      }
+    } finally {
+      await client.logout().catch(() => undefined);
+    }
+  }
+
   getCapabilities() {
     return { canSend: false };
   }
@@ -56,135 +87,120 @@ export class QQProvider implements EmailProvider {
     };
   }
 
-  async syncEmails(cursor: string | null, options: SyncOptions = {}): Promise<SyncResult> {
-    const config = getQqProviderConfig();
-    const client = new ImapFlow({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: {
-        user: this.creds.email,
-        pass: this.creds.authCode,
-      },
-      logger: false,
-    });
+  async markMessageRead(remoteId: string): Promise<void> {
+    const uid = parseInt(remoteId, 10);
+    if (!Number.isFinite(uid)) {
+      throw new Error(`Invalid QQ remote id: ${remoteId}`);
+    }
 
+    await this.withInboxClient(async (client) => {
+      await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true, silent: true });
+    });
+  }
+
+  async setMessageStarred(remoteId: string, starred: boolean): Promise<void> {
+    const uid = parseInt(remoteId, 10);
+    if (!Number.isFinite(uid)) {
+      throw new Error(`Invalid QQ remote id: ${remoteId}`);
+    }
+
+    await this.withInboxClient(async (client) => {
+      if (starred) {
+        await client.messageFlagsAdd(uid, ["\\Flagged"], { uid: true, silent: true });
+        return;
+      }
+
+      await client.messageFlagsRemove(uid, ["\\Flagged"], { uid: true, silent: true });
+    });
+  }
+
+  async syncEmails(cursor: string | null, options: SyncOptions = {}): Promise<SyncResult> {
     const emails: SyncedEmail[] = [];
     const lastUid = cursor ? parseInt(cursor, 10) : 0;
 
-    try {
-      await client.connect();
-      const lock = await client.getMailboxLock("INBOX");
+    return this.withInboxClient(async (client) => {
+      if (lastUid > 0) {
+        const messages = client.fetch(
+          `${lastUid + 1}:*`,
+          {
+            uid: true,
+            envelope: true,
+            internalDate: true,
+            source: options.metadataOnly ? false : true,
+          },
+          { uid: true }
+        );
 
-      try {
-        if (lastUid > 0) {
-          const messages = client.fetch(
-            `${lastUid + 1}:*`,
-            {
-              uid: true,
-              envelope: true,
-              internalDate: true,
-              source: options.metadataOnly ? false : true,
-            },
-            { uid: true }
-          );
-
-          let maxUid = lastUid;
-          let count = 0;
-          const maxEmails = options.limit ?? 50;
-
-          for await (const msg of messages) {
-            if (msg.uid <= lastUid) continue;
-            if (count >= maxEmails) break;
-
-            const email = options.metadataOnly ?? true
-              ? this.mapMetadataMessage(msg)
-              : await this.mapFullMessage(msg.uid, msg.source, msg.internalDate);
-
-            emails.push(email);
-            if (msg.uid > maxUid) maxUid = msg.uid;
-            count++;
-          }
-
-          return {
-            emails,
-            newCursor: maxUid > lastUid ? String(maxUid) : cursor,
-          };
-        }
-
-        const allUids = (await client.search({ all: true }, { uid: true })) || [];
-        const selectedUids = allUids.slice(-(options.limit ?? 200)).reverse();
         let maxUid = lastUid;
+        let count = 0;
+        const maxEmails = options.limit ?? 50;
 
-        for (const uid of selectedUids) {
-          const msg = await client.fetchOne(
-            uid,
-            {
-              uid: true,
-              envelope: true,
-              internalDate: true,
-              source: options.metadataOnly ? false : true,
-            },
-            { uid: true }
-          );
-
-          if (!msg) continue;
+        for await (const msg of messages) {
+          if (msg.uid <= lastUid) continue;
+          if (count >= maxEmails) break;
 
           const email = options.metadataOnly ?? true
             ? this.mapMetadataMessage(msg)
             : await this.mapFullMessage(msg.uid, msg.source, msg.internalDate);
 
           emails.push(email);
-          if (uid > maxUid) maxUid = uid;
+          if (msg.uid > maxUid) maxUid = msg.uid;
+          count++;
         }
 
         return {
           emails,
-          newCursor: maxUid > 0 ? String(maxUid) : cursor,
+          newCursor: maxUid > lastUid ? String(maxUid) : cursor,
         };
-      } finally {
-        lock.release();
       }
-    } finally {
-      await client.logout().catch(() => undefined);
-    }
+
+      const allUids = (await client.search({ all: true }, { uid: true })) || [];
+      const selectedUids = allUids.slice(-(options.limit ?? 200)).reverse();
+      let maxUid = lastUid;
+
+      for (const uid of selectedUids) {
+        const msg = await client.fetchOne(
+          uid,
+          {
+            uid: true,
+            envelope: true,
+            internalDate: true,
+            source: options.metadataOnly ? false : true,
+          },
+          { uid: true }
+        );
+
+        if (!msg) continue;
+
+        const email = options.metadataOnly ?? true
+          ? this.mapMetadataMessage(msg)
+          : await this.mapFullMessage(msg.uid, msg.source, msg.internalDate);
+
+        emails.push(email);
+        if (uid > maxUid) maxUid = uid;
+      }
+
+      return {
+        emails,
+        newCursor: maxUid > 0 ? String(maxUid) : cursor,
+      };
+    });
   }
 
   async fetchEmail(remoteId: string): Promise<SyncedEmail | null> {
     const uid = parseInt(remoteId, 10);
     if (!Number.isFinite(uid)) return null;
 
-    const config = getQqProviderConfig();
-    const client = new ImapFlow({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: {
-        user: this.creds.email,
-        pass: this.creds.authCode,
-      },
-      logger: false,
+    return this.withInboxClient(async (client) => {
+      const msg = await client.fetchOne(
+        uid,
+        { uid: true, internalDate: true, source: true },
+        { uid: true }
+      );
+
+      if (!msg || !msg.source) return null;
+      return this.mapFullMessage(msg.uid, msg.source, msg.internalDate);
     });
-
-    try {
-      await client.connect();
-      const lock = await client.getMailboxLock("INBOX");
-
-      try {
-        const msg = await client.fetchOne(
-          uid,
-          { uid: true, internalDate: true, source: true },
-          { uid: true }
-        );
-
-        if (!msg || !msg.source) return null;
-        return this.mapFullMessage(msg.uid, msg.source, msg.internalDate);
-      } finally {
-        lock.release();
-      }
-    } finally {
-      await client.logout().catch(() => undefined);
-    }
   }
 
   private mapMetadataMessage(msg: {

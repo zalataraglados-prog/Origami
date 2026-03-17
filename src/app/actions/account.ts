@@ -1,6 +1,6 @@
 "use server";
 
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { runLoggedAction } from "@/lib/actions";
 import { listSendCapableAccounts } from "@/lib/account-providers";
@@ -9,7 +9,6 @@ import { db } from "@/lib/db";
 import { accounts, attachments, emails } from "@/lib/db/schema";
 import { getAccountRecordById, listAccounts } from "@/lib/queries/accounts";
 import { deleteAttachment } from "@/lib/r2";
-import { eq } from "drizzle-orm";
 
 export async function getAccounts() {
   return listAccounts();
@@ -91,6 +90,48 @@ export async function updateAccountInitialFetchLimit(
       .update(accounts)
       .set({ initialFetchLimit })
       .where(eq(accounts.id, id));
+  });
+}
+
+export async function updateAccountWriteBackSettings(
+  id: string,
+  settings: { syncReadBack?: boolean; syncStarBack?: boolean }
+) {
+  return runLoggedAction("updateAccountWriteBackSettings", async () => {
+    const patch: { syncReadBack?: number; syncStarBack?: number } = {};
+
+    if (settings.syncReadBack !== undefined) {
+      patch.syncReadBack = settings.syncReadBack ? 1 : 0;
+    }
+
+    if (settings.syncStarBack !== undefined) {
+      patch.syncStarBack = settings.syncStarBack ? 1 : 0;
+    }
+
+    if (Object.keys(patch).length === 0) return;
+
+    await db.update(accounts).set(patch).where(eq(accounts.id, id));
+  });
+}
+
+export async function updateAllAccountsWriteBackSettings(settings: {
+  syncReadBack?: boolean;
+  syncStarBack?: boolean;
+}) {
+  return runLoggedAction("updateAllAccountsWriteBackSettings", async () => {
+    const patch: { syncReadBack?: number; syncStarBack?: number } = {};
+
+    if (settings.syncReadBack !== undefined) {
+      patch.syncReadBack = settings.syncReadBack ? 1 : 0;
+    }
+
+    if (settings.syncStarBack !== undefined) {
+      patch.syncStarBack = settings.syncStarBack ? 1 : 0;
+    }
+
+    if (Object.keys(patch).length === 0) return;
+
+    await db.update(accounts).set(patch);
   });
 }
 

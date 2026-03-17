@@ -1,10 +1,15 @@
-import { listAccounts } from "@/lib/queries/accounts";
-import { AccountCard } from "@/components/accounts/account-card";
 import { AddAccountDialog } from "@/components/accounts/add-account-dialog";
+import { AccountsPanel } from "@/components/accounts/accounts-panel";
 import { Separator } from "@/components/ui/separator";
+import { getAccountWriteBackAvailability } from "@/lib/providers/writeBack";
+import { listAccounts } from "@/lib/queries/accounts";
 
 export default async function AccountsPage() {
   const accounts = await listAccounts();
+  const accountViews = accounts.map((account) => ({
+    ...account,
+    ...getAccountWriteBackAvailability(account),
+  }));
 
   return (
     <div className="flex-1 overflow-auto">
@@ -12,8 +17,8 @@ export default async function AccountsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">邮箱账号</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              管理你的邮箱连接，添加或移除账号。
+            <p className="mt-1 text-sm text-muted-foreground">
+              管理你的邮箱连接，添加或移除账号，也可以按账号开启远端已读/星标写回。
             </p>
           </div>
           <AddAccountDialog />
@@ -21,7 +26,7 @@ export default async function AccountsPage() {
 
         <Separator className="my-6" />
 
-        {accounts.length === 0 ? (
+        {accountViews.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-lg text-muted-foreground">还没有添加任何邮箱</p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -29,11 +34,7 @@ export default async function AccountsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {accounts.map((account) => (
-              <AccountCard key={account.id} account={account} />
-            ))}
-          </div>
+          <AccountsPanel accounts={accountViews} />
         )}
       </div>
     </div>

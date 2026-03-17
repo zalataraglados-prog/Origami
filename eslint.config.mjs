@@ -1,3 +1,10 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
 
-export default nextVitals;
+const config = [
+  {
+    ignores: ["docs/.vitepress/dist/**"],
+  },
+  ...nextVitals,
+];
+
+export default config;

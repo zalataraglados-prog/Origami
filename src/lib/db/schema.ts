@@ -8,6 +8,8 @@ export const accounts = sqliteTable("accounts", {
   displayName: text("display_name"),
   credentials: text("credentials").notNull(), // AES-encrypted JSON
   syncCursor: text("sync_cursor"),
+  syncReadBack: integer("sync_read_back").notNull().default(0),
+  syncStarBack: integer("sync_star_back").notNull().default(0),
   initialFetchLimit: integer("initial_fetch_limit").notNull().default(200),
   lastSyncedAt: integer("last_synced_at"),
   createdAt: integer("created_at").default(sql`(unixepoch())`),

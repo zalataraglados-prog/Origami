@@ -17,6 +17,8 @@ interface GmailCredentials {
   scopes?: string[];
 }
 
+export const GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
+
 function normalizeScopes(scopes?: string[] | string): string[] {
   const list = Array.isArray(scopes) ? scopes : scopes?.split(/\s+/) ?? [];
   return [...new Set(list.map((scope) => scope.trim()).filter(Boolean))];
@@ -25,6 +27,10 @@ function normalizeScopes(scopes?: string[] | string): string[] {
 function hasGmailSendScope(scopes?: string[]): boolean {
   const normalized = normalizeScopes(scopes);
   return getGmailProviderConfig().sendScopes.some((scope) => normalized.includes(scope));
+}
+
+export function hasGmailModifyScope(scopes?: string[]): boolean {
+  return normalizeScopes(scopes).includes(GMAIL_MODIFY_SCOPE);
 }
 
 function getOAuth2Client() {
@@ -183,6 +189,26 @@ export class GmailProvider implements EmailProvider {
         providerRawError,
       };
     }
+  }
+
+  async markMessageRead(remoteId: string): Promise<void> {
+    await this.gmail.users.messages.modify({
+      userId: "me",
+      id: remoteId,
+      requestBody: {
+        removeLabelIds: ["UNREAD"],
+      },
+    });
+  }
+
+  async setMessageStarred(remoteId: string, starred: boolean): Promise<void> {
+    await this.gmail.users.messages.modify({
+      userId: "me",
+      id: remoteId,
+      requestBody: starred
+        ? { addLabelIds: ["STARRED"] }
+        : { removeLabelIds: ["STARRED"] },
+    });
   }
 
   async syncEmails(cursor: string | null, options: SyncOptions = {}): Promise<SyncResult> {

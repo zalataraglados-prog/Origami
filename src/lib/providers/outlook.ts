@@ -22,9 +22,14 @@ function normalizeScopes(scopes?: string[] | string): string[] {
 }
 
 const OUTLOOK_REQUIRED_SEND_SCOPE = "mail.send";
+export const OUTLOOK_REQUIRED_WRITEBACK_SCOPE = "mail.readwrite";
 
 function hasOutlookSendScope(scopes?: string[]): boolean {
   return normalizeScopes(scopes).includes(OUTLOOK_REQUIRED_SEND_SCOPE);
+}
+
+export function hasOutlookWriteBackScope(scopes?: string[]): boolean {
+  return normalizeScopes(scopes).includes(OUTLOOK_REQUIRED_WRITEBACK_SCOPE);
 }
 
 export function getOutlookAuthUrl(): string {
@@ -34,7 +39,7 @@ export function getOutlookAuthUrl(): string {
     response_type: "code",
     redirect_uri: config.redirectUrl,
     response_mode: "query",
-    scope: "openid email User.Read Mail.Read Mail.Send offline_access",
+    scope: "openid email User.Read Mail.Read Mail.ReadWrite Mail.Send offline_access",
     prompt: "consent",
   });
   return `https://login.microsoftonline.com/${config.tenant}/oauth2/v2.0/authorize?${params}`;
@@ -114,6 +119,20 @@ export class OutlookProvider implements EmailProvider {
     return {
       canSend: hasOutlookSendScope(this.creds.scopes),
     };
+  }
+
+  async markMessageRead(remoteId: string): Promise<void> {
+    return this.withRefresh(async () => {
+      await this.client.api(`/me/messages/${remoteId}`).patch({ isRead: true });
+    });
+  }
+
+  async setMessageStarred(remoteId: string, starred: boolean): Promise<void> {
+    return this.withRefresh(async () => {
+      await this.client.api(`/me/messages/${remoteId}`).patch({
+        flag: { flagStatus: starred ? "flagged" : "notFlagged" },
+      });
+    });
   }
 
   async syncEmails(cursor: string | null, options: SyncOptions = {}): Promise<SyncResult> {

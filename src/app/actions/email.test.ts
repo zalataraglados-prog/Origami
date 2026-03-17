@@ -64,7 +64,7 @@ describe("email actions write-back integration", () => {
   });
 
   it("markRead does not await remote write-back", async () => {
-    let release = () => undefined;
+    let release: () => void = () => undefined;
     writeBackReadMock.mockImplementation(
       () =>
         new Promise((resolve) => {

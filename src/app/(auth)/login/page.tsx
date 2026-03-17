@@ -9,6 +9,11 @@ const errorMessages: Record<string, string> = {
   github_not_allowed: "这个 GitHub 账号不在允许名单内。",
   github_not_owner: "这个 GitHub 账号不是当前实例 owner。",
   github_callback: "GitHub 登录失败，请稍后重试。",
+
+  // Actionable config errors (common in dev/Codespaces)
+  missing_db: "缺少数据库配置：请设置 TURSO_DATABASE_URL（本地/开发也需要）。",
+  github_oauth_misconfig: "GitHub OAuth 配置不完整：请检查 GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / NEXT_PUBLIC_APP_URL。",
+  missing_auth_secret: "缺少登录密钥：请设置 AUTH_SECRET（或 ENCRYPTION_KEY）。",
 };
 
 export default async function LoginPage({

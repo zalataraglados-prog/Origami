@@ -59,6 +59,21 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error(error);
+
+    const message = error instanceof Error ? error.message : "";
+
+    if (message.includes("Missing environment variable: TURSO_DATABASE_URL")) {
+      return NextResponse.redirect(new URL("/login?error=missing_db", request.url));
+    }
+
+    if (message.includes("GitHub OAuth requires")) {
+      return NextResponse.redirect(new URL("/login?error=github_oauth_misconfig", request.url));
+    }
+
+    if (message.includes("Missing AUTH_SECRET") || message.includes("Missing environment variable: AUTH_SECRET")) {
+      return NextResponse.redirect(new URL("/login?error=missing_auth_secret", request.url));
+    }
+
     return NextResponse.redirect(new URL("/login?error=github_callback", request.url));
   }
 }

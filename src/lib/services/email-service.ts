@@ -68,6 +68,7 @@ export async function hydrateEmailIfNeeded(email: Email): Promise<Email> {
     if (!resolved) {
       await setHydrationState(email.id, {
         hydrationStatus: "failed",
+        hydratedAt: nowUnix(),
         hydrationError: "账号不存在或 provider 初始化失败。",
       });
       return (await getEmailRecordById(email.id)) ?? email;
@@ -78,6 +79,7 @@ export async function hydrateEmailIfNeeded(email: Email): Promise<Email> {
     if (!fetched) {
       await setHydrationState(email.id, {
         hydrationStatus: "failed",
+        hydratedAt: nowUnix(),
         hydrationError: "远端未找到这封邮件，可能已被删除或移动。",
       });
       return (await getEmailRecordById(email.id)) ?? email;
@@ -119,6 +121,7 @@ export async function hydrateEmailIfNeeded(email: Email): Promise<Email> {
     console.error("Failed to hydrate email body:", error);
     await setHydrationState(email.id, {
       hydrationStatus: "failed",
+      hydratedAt: nowUnix(),
       hydrationError: message,
     });
     return (await getEmailRecordById(email.id)) ?? email;

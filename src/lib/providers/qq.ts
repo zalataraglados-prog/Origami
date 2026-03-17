@@ -19,6 +19,7 @@ export class QQProvider implements EmailProvider {
           email: creds.email,
           displayName: creds.email,
           credentials: "",
+          oauthAppId: null,
           presetKey: "qq",
           authUser: creds.email,
           imapHost: null,

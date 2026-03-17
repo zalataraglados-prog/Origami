@@ -24,12 +24,14 @@ export function createEmailProvider(
         accessToken: String(creds.accessToken ?? ""),
         refreshToken: String(creds.refreshToken ?? ""),
         scopes: Array.isArray(creds.scopes) ? creds.scopes.map(String) : [],
+        appId: account.oauthAppId ?? undefined,
       });
     case "outlook":
       return new OutlookProvider({
         accessToken: String(creds.accessToken ?? ""),
         refreshToken: String(creds.refreshToken ?? ""),
         scopes: Array.isArray(creds.scopes) ? creds.scopes.map(String) : [],
+        appId: account.oauthAppId ?? undefined,
       });
     default:
       throw new Error(`Unknown provider: ${account.provider}`);

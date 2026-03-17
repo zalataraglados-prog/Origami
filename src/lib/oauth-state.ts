@@ -1,11 +1,20 @@
+import { DEFAULT_OAUTH_APP_ID } from "@/lib/oauth-apps";
+
 export interface OAuthStatePayload {
+  appId?: string;
   intent?: "writeback";
   enableReadBack?: boolean;
   enableStarBack?: boolean;
 }
 
 export function encodeOAuthState(payload: OAuthStatePayload): string {
-  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return Buffer.from(
+    JSON.stringify({
+      ...payload,
+      appId: payload.appId?.trim() || DEFAULT_OAUTH_APP_ID,
+    }),
+    "utf8"
+  ).toString("base64url");
 }
 
 export function decodeOAuthState(state?: string | null): OAuthStatePayload | null {
@@ -13,7 +22,11 @@ export function decodeOAuthState(state?: string | null): OAuthStatePayload | nul
 
   try {
     const json = Buffer.from(state, "base64url").toString("utf8");
-    return JSON.parse(json) as OAuthStatePayload;
+    const payload = JSON.parse(json) as OAuthStatePayload;
+    return {
+      ...payload,
+      appId: payload.appId?.trim() || DEFAULT_OAUTH_APP_ID,
+    };
   } catch {
     return null;
   }

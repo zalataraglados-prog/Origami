@@ -16,9 +16,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { email, displayName, accessToken, refreshToken, scopes } =
-      await exchangeOutlookCode(code);
-    await addOAuthAccount("outlook", email, displayName, accessToken, refreshToken, scopes);
+    const { email, displayName, accessToken, refreshToken, scopes, appId } =
+      await exchangeOutlookCode(code, state?.appId);
+    await addOAuthAccount(
+      "outlook",
+      email,
+      displayName,
+      accessToken,
+      refreshToken,
+      scopes,
+      200,
+      appId
+    );
 
     if (state?.intent === "writeback") {
       const account = await getAccountRecordByEmail(email);

@@ -43,6 +43,13 @@
       "when": 1773779100000,
       "tag": "0005_imap_smtp_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773781800000,
+      "tag": "0006_accounts_oauth_app_id",
+      "breakpoints": true
     }
   ]
 }

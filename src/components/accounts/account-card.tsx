@@ -69,6 +69,7 @@ export function AccountCard({ account }: { account: AccountSettingsView }) {
   function handleReauthorize(target: "read" | "star") {
     startTransition(async () => {
       const options = {
+        appId: account.oauthAppId ?? undefined,
         intent: "writeback" as const,
         enableReadBack: target === "read" || account.syncReadBack === 1,
         enableStarBack: target === "star" || account.syncStarBack === 1,

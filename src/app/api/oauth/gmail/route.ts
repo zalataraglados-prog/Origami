@@ -16,8 +16,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { email, accessToken, refreshToken, scopes } = await exchangeGmailCode(code);
-    await addOAuthAccount("gmail", email, email, accessToken, refreshToken, scopes);
+    const { email, accessToken, refreshToken, scopes, appId } = await exchangeGmailCode(
+      code,
+      state?.appId
+    );
+    await addOAuthAccount("gmail", email, email, accessToken, refreshToken, scopes, 200, appId);
 
     if (state?.intent === "writeback") {
       const account = await getAccountRecordByEmail(email);

@@ -45,6 +45,7 @@ describe("GET /api/oauth/gmail", () => {
       accessToken: "access",
       refreshToken: "refresh",
       scopes: ["https://www.googleapis.com/auth/gmail.modify"],
+      appId: "default",
     });
     addOAuthAccountMock.mockResolvedValue(undefined);
     getAccountRecordByEmailMock.mockResolvedValue({ id: "acc-gmail-1" });
@@ -55,6 +56,7 @@ describe("GET /api/oauth/gmail", () => {
     const { GET } = await import("./route");
 
     const state = encodeOAuthState({
+      appId: "default",
       intent: "writeback",
       enableReadBack: true,
       enableStarBack: false,
@@ -63,14 +65,16 @@ describe("GET /api/oauth/gmail", () => {
 
     const response = await GET(request);
 
-    expect(exchangeGmailCodeMock).toHaveBeenCalledWith("test-code");
+    expect(exchangeGmailCodeMock).toHaveBeenCalledWith("test-code", "default");
     expect(addOAuthAccountMock).toHaveBeenCalledWith(
       "gmail",
       "user@gmail.com",
       "user@gmail.com",
       "access",
       "refresh",
-      ["https://www.googleapis.com/auth/gmail.modify"]
+      ["https://www.googleapis.com/auth/gmail.modify"],
+      200,
+      "default"
     );
     expect(getAccountRecordByEmailMock).toHaveBeenCalledWith("user@gmail.com");
     expect(updateMock).toHaveBeenCalled();

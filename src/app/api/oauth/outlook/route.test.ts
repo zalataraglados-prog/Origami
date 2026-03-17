@@ -46,6 +46,7 @@ describe("GET /api/oauth/outlook", () => {
       accessToken: "access",
       refreshToken: "refresh",
       scopes: ["mail.readwrite", "mail.send"],
+      appId: "default",
     });
     addOAuthAccountMock.mockResolvedValue(undefined);
     getAccountRecordByEmailMock.mockResolvedValue({ id: "acc-outlook-1" });
@@ -56,6 +57,7 @@ describe("GET /api/oauth/outlook", () => {
     const { GET } = await import("./route");
 
     const state = encodeOAuthState({
+      appId: "default",
       intent: "writeback",
       enableReadBack: true,
       enableStarBack: true,
@@ -64,14 +66,16 @@ describe("GET /api/oauth/outlook", () => {
 
     const response = await GET(request);
 
-    expect(exchangeOutlookCodeMock).toHaveBeenCalledWith("test-code");
+    expect(exchangeOutlookCodeMock).toHaveBeenCalledWith("test-code", "default");
     expect(addOAuthAccountMock).toHaveBeenCalledWith(
       "outlook",
       "user@outlook.com",
       "Outlook User",
       "access",
       "refresh",
-      ["mail.readwrite", "mail.send"]
+      ["mail.readwrite", "mail.send"],
+      200,
+      "default"
     );
     expect(getAccountRecordByEmailMock).toHaveBeenCalledWith("user@outlook.com");
     expect(updateSetMock).toHaveBeenCalledWith({ syncReadBack: 1, syncStarBack: 1 });

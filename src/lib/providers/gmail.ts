@@ -1,5 +1,6 @@
 import { google, type gmail_v1 } from "googleapis";
 import { getGmailProviderConfig } from "@/config/providers.server";
+import { DEFAULT_OAUTH_APP_ID } from "@/lib/oauth-apps";
 import { buildMimeMessage, encodeMimeMessageBase64Url } from "./mime";
 import type {
   EmailProvider,
@@ -15,6 +16,7 @@ interface GmailCredentials {
   accessToken: string;
   refreshToken: string;
   scopes?: string[];
+  appId?: string;
 }
 
 export const GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
@@ -24,17 +26,17 @@ function normalizeScopes(scopes?: string[] | string): string[] {
   return [...new Set(list.map((scope) => scope.trim()).filter(Boolean))];
 }
 
-function hasGmailSendScope(scopes?: string[]): boolean {
+function hasGmailSendScope(scopes?: string[], appId?: string): boolean {
   const normalized = normalizeScopes(scopes);
-  return getGmailProviderConfig().sendScopes.some((scope) => normalized.includes(scope));
+  return getGmailProviderConfig(appId).sendScopes.some((scope) => normalized.includes(scope));
 }
 
 export function hasGmailModifyScope(scopes?: string[]): boolean {
   return normalizeScopes(scopes).includes(GMAIL_MODIFY_SCOPE);
 }
 
-function getOAuth2Client() {
-  const config = getGmailProviderConfig();
+function getOAuth2Client(appId?: string) {
+  const config = getGmailProviderConfig(appId);
   return new google.auth.OAuth2(
     config.clientId,
     config.clientSecret,
@@ -42,8 +44,8 @@ function getOAuth2Client() {
   );
 }
 
-export function getGmailAuthUrl(state?: string): string {
-  const oauth2 = getOAuth2Client();
+export function getGmailAuthUrl(state?: string, appId?: string): string {
+  const oauth2 = getOAuth2Client(appId);
   return oauth2.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
@@ -56,8 +58,8 @@ export function getGmailAuthUrl(state?: string): string {
   });
 }
 
-export async function exchangeGmailCode(code: string) {
-  const oauth2 = getOAuth2Client();
+export async function exchangeGmailCode(code: string, appId?: string) {
+  const oauth2 = getOAuth2Client(appId);
   const { tokens } = await oauth2.getToken(code);
   oauth2.setCredentials(tokens);
 
@@ -69,6 +71,7 @@ export async function exchangeGmailCode(code: string) {
     accessToken: tokens.access_token!,
     refreshToken: tokens.refresh_token!,
     scopes: normalizeScopes(tokens.scope),
+    appId: appId?.trim() || DEFAULT_OAUTH_APP_ID,
   };
 }
 
@@ -81,8 +84,9 @@ export class GmailProvider implements EmailProvider {
     this.creds = {
       ...creds,
       scopes: normalizeScopes(creds.scopes),
+      appId: creds.appId?.trim() || DEFAULT_OAUTH_APP_ID,
     };
-    this.oauth2 = getOAuth2Client();
+    this.oauth2 = getOAuth2Client(this.creds.appId);
     this.oauth2.setCredentials({
       access_token: creds.accessToken,
       refresh_token: creds.refreshToken,
@@ -112,7 +116,7 @@ export class GmailProvider implements EmailProvider {
 
   getCapabilities() {
     return {
-      canSend: hasGmailSendScope(this.creds.scopes),
+      canSend: hasGmailSendScope(this.creds.scopes, this.creds.appId),
     };
   }
 
@@ -226,134 +230,94 @@ export class GmailProvider implements EmailProvider {
       format: "full",
     });
 
+    if (!msg.data.id) return null;
     return this.mapMessage(msg.data, false);
+  }
+
+  private async incrementalSync(cursor: string, options: SyncOptions): Promise<SyncResult> {
+    const historyRes = await this.gmail.users.history.list({
+      userId: "me",
+      startHistoryId: cursor,
+      historyTypes: ["messageAdded"],
+      maxResults: options.limit ?? 50,
+    });
+
+    const history = historyRes.data.history ?? [];
+    const ids = history
+      .flatMap((h) => (h.messagesAdded ?? []).map((m) => m.message?.id))
+      .filter(Boolean) as string[];
+
+    const emails: SyncedEmail[] = [];
+    for (const id of ids) {
+      const msg = await this.gmail.users.messages.get({
+        userId: "me",
+        id,
+        format: options.metadataOnly ? "metadata" : "full",
+      });
+      emails.push(this.mapMessage(msg.data, Boolean(options.metadataOnly)));
+    }
+
+    return {
+      emails,
+      newCursor: historyRes.data.historyId ?? cursor,
+    };
   }
 
   private async fullSync(options: SyncOptions): Promise<SyncResult> {
     const listRes = await this.gmail.users.messages.list({
       userId: "me",
-      maxResults: options.limit ?? 200,
-      labelIds: ["INBOX"],
+      maxResults: options.limit ?? 50,
+      q: "in:inbox",
     });
+    const messages = listRes.data.messages ?? [];
+    const emails: SyncedEmail[] = [];
 
-    const messageIds = listRes.data.messages ?? [];
-    const emails = await this.fetchMessages(
-      messageIds.map((m) => m.id!).filter(Boolean),
-      options.metadataOnly ?? true
-    );
-
-    const profile = await this.gmail.users.getProfile({ userId: "me" });
-    const historyId = profile.data.historyId ?? null;
-
-    return { emails, newCursor: historyId };
-  }
-
-  private async incrementalSync(historyId: string, options: SyncOptions): Promise<SyncResult> {
-    try {
-      const historyRes = await this.gmail.users.history.list({
-        userId: "me",
-        startHistoryId: historyId,
-        historyTypes: ["messageAdded"],
-        labelId: "INBOX",
-      });
-
-      const newHistoryId = historyRes.data.historyId ?? historyId;
-      const history = historyRes.data.history ?? [];
-      const addedIds = new Set<string>();
-
-      for (const h of history) {
-        for (const added of h.messagesAdded ?? []) {
-          if (added.message?.id) addedIds.add(added.message.id);
-        }
-      }
-
-      if (addedIds.size === 0) {
-        return { emails: [], newCursor: newHistoryId };
-      }
-
-      const emails = await this.fetchMessages(
-        [...addedIds].slice(0, options.limit ?? 50),
-        options.metadataOnly ?? true
-      );
-      return { emails, newCursor: newHistoryId };
-    } catch (err: unknown) {
-      const error = err as { code?: number };
-      if (error.code === 404) {
-        return this.fullSync(options);
-      }
-      throw err;
-    }
-  }
-
-  private async fetchMessages(ids: string[], metadataOnly: boolean): Promise<SyncedEmail[]> {
-    const results: SyncedEmail[] = [];
-
-    for (const id of ids) {
+    for (const m of messages) {
       const msg = await this.gmail.users.messages.get({
         userId: "me",
-        id,
-        format: metadataOnly ? "metadata" : "full",
-        metadataHeaders: ["Message-ID", "Subject", "From", "To", "Date"],
+        id: m.id!,
+        format: options.metadataOnly ? "metadata" : "full",
       });
-
-      const email = await this.mapMessage(msg.data, metadataOnly);
-      if (email) {
-        results.push(email);
-      }
+      emails.push(this.mapMessage(msg.data, Boolean(options.metadataOnly)));
     }
 
-    return results;
+    const profile = await this.gmail.users.getProfile({ userId: "me" });
+    return { emails, newCursor: profile.data.historyId ?? null };
   }
 
-  private async mapMessage(
-    data: gmail_v1.Schema$Message,
-    metadataOnly: boolean
-  ): Promise<SyncedEmail | null> {
-    if (!data.id) return null;
-
-    const headers = data.payload?.headers ?? [];
-    const getHeader = (name: string) =>
-      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
-
+  private mapMessage(msg: gmail_v1.Schema$Message, metadataOnly: boolean): SyncedEmail {
+    const headers = Object.fromEntries(
+      (msg.payload?.headers ?? []).map((h) => [h.name?.toLowerCase() ?? "", h.value ?? ""])
+    );
+    const parts = msg.payload?.parts ?? [];
     const attachments: SyncedAttachment[] = [];
 
-    if (!metadataOnly && data.payload?.parts) {
-      for (const part of this.flattenParts(data.payload.parts)) {
-        if (part.filename && part.body?.attachmentId) {
-          const att = await this.gmail.users.messages.attachments.get({
-            userId: "me",
-            messageId: data.id,
-            id: part.body.attachmentId,
-          });
-          if (att.data.data) {
-            attachments.push({
-              filename: part.filename,
-              contentType: part.mimeType ?? "application/octet-stream",
-              size: att.data.size ?? 0,
-              content: Buffer.from(att.data.data, "base64url"),
-            });
-          }
-        }
+    for (const p of parts) {
+      if (p.filename && p.body?.attachmentId) {
+        attachments.push({
+          filename: p.filename,
+          contentType: p.mimeType ?? "application/octet-stream",
+          size: p.body.size ?? 0,
+          content: Buffer.alloc(0),
+        });
       }
     }
 
-    const receivedDate = data.internalDate
-      ? Math.floor(parseInt(data.internalDate) / 1000)
-      : Math.floor(Date.now() / 1000);
+    const bodyData = metadataOnly
+      ? undefined
+      : this.extractBody(msg.payload, "text/plain") || this.extractBody(msg.payload, "text/html");
+    const htmlData = metadataOnly ? undefined : this.extractBody(msg.payload, "text/html");
 
     return {
-      remoteId: data.id,
-      messageId: getHeader("Message-ID") || `gmail-${data.id}`,
-      subject: getHeader("Subject") || "(无主题)",
-      sender: getHeader("From"),
-      recipients: getHeader("To")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      snippet: data.snippet ?? "",
-      bodyText: metadataOnly ? null : this.extractBody(data.payload, "text/plain"),
-      bodyHtml: metadataOnly ? null : this.extractBody(data.payload, "text/html"),
-      receivedAt: receivedDate,
+      remoteId: msg.id!,
+      messageId: headers["message-id"] ?? msg.id!,
+      subject: headers.subject ?? "(无主题)",
+      sender: headers.from ?? "",
+      recipients: headers.to ? headers.to.split(/,\s*/) : [],
+      snippet: msg.snippet ?? "",
+      bodyText: bodyData ? Buffer.from(bodyData, "base64").toString("utf8") : null,
+      bodyHtml: htmlData ? Buffer.from(htmlData, "base64").toString("utf8") : null,
+      receivedAt: Number(headers.date ? Date.parse(headers.date) / 1000 : Date.now() / 1000),
       folder: "INBOX",
       attachments,
     };
@@ -362,26 +326,13 @@ export class GmailProvider implements EmailProvider {
   private extractBody(
     payload: gmail_v1.Schema$MessagePart | undefined,
     mimeType: string
-  ): string {
-    if (!payload) return "";
-    if (payload.mimeType === mimeType && payload.body?.data) {
-      return Buffer.from(payload.body.data, "base64url").toString("utf-8");
+  ): string | null {
+    if (!payload) return null;
+    if (payload.mimeType === mimeType && payload.body?.data) return payload.body.data;
+    for (const p of payload.parts ?? []) {
+      const found = this.extractBody(p, mimeType);
+      if (found) return found;
     }
-    for (const part of payload.parts ?? []) {
-      const result = this.extractBody(part, mimeType);
-      if (result) return result;
-    }
-    return "";
-  }
-
-  private flattenParts(
-    parts: gmail_v1.Schema$MessagePart[]
-  ): gmail_v1.Schema$MessagePart[] {
-    const result: gmail_v1.Schema$MessagePart[] = [];
-    for (const part of parts) {
-      result.push(part);
-      if (part.parts) result.push(...this.flattenParts(part.parts));
-    }
-    return result;
+    return null;
   }
 }

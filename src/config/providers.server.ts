@@ -1,35 +1,17 @@
-import { requireEnv } from "@/config/env";
+import {
+  GMAIL_SEND_SCOPES,
+  resolveGmailOAuthApp,
+  resolveOutlookOAuthApp,
+} from "@/lib/oauth-apps";
 
-export const GMAIL_SEND_SCOPES = [
-  "https://mail.google.com/",
-  "https://www.googleapis.com/auth/gmail.modify",
-  "https://www.googleapis.com/auth/gmail.compose",
-  "https://www.googleapis.com/auth/gmail.send",
-];
+export { GMAIL_SEND_SCOPES };
 
-export function getGmailProviderConfig() {
-  const appUrl = requireEnv("NEXT_PUBLIC_APP_URL");
-
-  return {
-    clientId: requireEnv("GMAIL_CLIENT_ID"),
-    clientSecret: requireEnv("GMAIL_CLIENT_SECRET"),
-    redirectUrl: `${appUrl}/api/oauth/gmail`,
-    sendScopes: GMAIL_SEND_SCOPES,
-  };
+export function getGmailProviderConfig(appId?: string | null) {
+  return resolveGmailOAuthApp(appId);
 }
 
-export function getOutlookProviderConfig() {
-  const tenant = "common";
-  const appUrl = requireEnv("NEXT_PUBLIC_APP_URL");
-
-  return {
-    tenant,
-    tokenUrl: `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
-    clientId: requireEnv("OUTLOOK_CLIENT_ID"),
-    clientSecret: requireEnv("OUTLOOK_CLIENT_SECRET"),
-    redirectUrl: `${appUrl}/api/oauth/outlook`,
-    requiredSendScope: "mail.send",
-  };
+export function getOutlookProviderConfig(appId?: string | null) {
+  return resolveOutlookOAuthApp(appId);
 }
 
 export function getQqProviderConfig() {

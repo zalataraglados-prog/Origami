@@ -293,12 +293,14 @@ export async function addOAuthAccount(
   accessToken: string,
   refreshToken: string,
   scopes: string[] = [],
-  initialFetchLimit = 200
+  initialFetchLimit = 200,
+  oauthAppId?: string
 ) {
   return runLoggedAction("addOAuthAccount", async () => {
     validateInitialFetchLimit(initialFetchLimit);
     const id = nanoid();
     const creds = encrypt(JSON.stringify({ accessToken, refreshToken, scopes }));
+    const resolvedOauthAppId = oauthAppId?.trim() || null;
 
     await db
       .insert(accounts)
@@ -308,11 +310,12 @@ export async function addOAuthAccount(
         email,
         displayName: displayName ?? email,
         credentials: creds,
+        oauthAppId: resolvedOauthAppId,
         initialFetchLimit,
       })
       .onConflictDoUpdate({
         target: accounts.email,
-        set: { credentials: creds, displayName },
+        set: { credentials: creds, displayName, oauthAppId: resolvedOauthAppId },
       });
 
     return id;

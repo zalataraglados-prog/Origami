@@ -1,5 +1,6 @@
 import { Client } from "@microsoft/microsoft-graph-client";
 import { getOutlookProviderConfig } from "@/config/providers.server";
+import { DEFAULT_OAUTH_APP_ID } from "@/lib/oauth-apps";
 import type {
   EmailProvider,
   SendMailParams,
@@ -14,6 +15,7 @@ interface OutlookCredentials {
   accessToken: string;
   refreshToken: string;
   scopes?: string[];
+  appId?: string;
 }
 
 function normalizeScopes(scopes?: string[] | string): string[] {
@@ -32,8 +34,8 @@ export function hasOutlookWriteBackScope(scopes?: string[]): boolean {
   return normalizeScopes(scopes).includes(OUTLOOK_REQUIRED_WRITEBACK_SCOPE);
 }
 
-export function getOutlookAuthUrl(state?: string): string {
-  const config = getOutlookProviderConfig();
+export function getOutlookAuthUrl(state?: string, appId?: string): string {
+  const config = getOutlookProviderConfig(appId);
   const params = new URLSearchParams({
     client_id: config.clientId,
     response_type: "code",
@@ -46,8 +48,8 @@ export function getOutlookAuthUrl(state?: string): string {
   return `https://login.microsoftonline.com/${config.tenant}/oauth2/v2.0/authorize?${params}`;
 }
 
-export async function exchangeOutlookCode(code: string) {
-  const config = getOutlookProviderConfig();
+export async function exchangeOutlookCode(code: string, appId?: string) {
+  const config = getOutlookProviderConfig(appId);
   const res = await fetch(config.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -74,11 +76,12 @@ export async function exchangeOutlookCode(code: string) {
     accessToken: tokens.access_token as string,
     refreshToken: tokens.refresh_token as string,
     scopes: normalizeScopes(tokens.scope as string),
+    appId: appId?.trim() || DEFAULT_OAUTH_APP_ID,
   };
 }
 
-async function refreshTokens(refreshToken: string) {
-  const config = getOutlookProviderConfig();
+async function refreshTokens(refreshToken: string, appId?: string) {
+  const config = getOutlookProviderConfig(appId);
   const res = await fetch(config.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -106,6 +109,7 @@ export class OutlookProvider implements EmailProvider {
     this.creds = {
       ...creds,
       scopes: normalizeScopes(creds.scopes),
+      appId: creds.appId?.trim() || DEFAULT_OAUTH_APP_ID,
     };
     this.client = Client.init({
       authProvider: (done) => done(null, this.creds.accessToken),
@@ -243,11 +247,20 @@ export class OutlookProvider implements EmailProvider {
           };
         }
 
+        if (status === 413) {
+          return {
+            ok: false,
+            errorCode: "PROVIDER_ERROR",
+            errorMessage: "附件或邮件内容过大，当前 Outlook 路径不支持更大的请求体。",
+            providerRawError,
+          };
+        }
+
         if (status === 429) {
           return {
             ok: false,
             errorCode: "RATE_LIMITED",
-            errorMessage: "Outlook 当前触发了频率限制，请稍后重试。",
+            errorMessage: "Outlook 当前触发了发送频率限制，请稍后重试。",
             providerRawError,
           };
         }
@@ -265,128 +278,67 @@ export class OutlookProvider implements EmailProvider {
   private async withRefresh<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
-    } catch {
-      const newTokens = await refreshTokens(this.creds.refreshToken);
-      this.creds = {
-        ...newTokens,
-        scopes: newTokens.scopes.length > 0 ? newTokens.scopes : this.creds.scopes,
-      };
-      this.client = Client.init({
-        authProvider: (done) => done(null, this.creds.accessToken),
-      });
-      return fn();
+    } catch (err: unknown) {
+      const e = err as { statusCode?: number; code?: string; message?: string };
+      if (e.statusCode === 401 || e.code === "InvalidAuthenticationToken") {
+        const next = await refreshTokens(this.creds.refreshToken, this.creds.appId);
+        this.creds = { ...this.creds, ...next };
+        this.client = Client.init({ authProvider: (done) => done(null, this.creds.accessToken) });
+        return fn();
+      }
+      throw err;
     }
   }
 
   private async _sync(cursor: string | null, options: SyncOptions): Promise<SyncResult> {
-    let response;
-    const top = options.limit ?? 50;
-    const select = options.metadataOnly ?? true
-      ? "id,internetMessageId,subject,from,toRecipients,receivedDateTime,bodyPreview,hasAttachments"
-      : "id,internetMessageId,subject,from,toRecipients,receivedDateTime,bodyPreview,body,hasAttachments";
-
+    let url = "/me/mailFolders/inbox/messages?$orderby=receivedDateTime desc";
+    if (options.limit) url += `&$top=${options.limit}`;
+    if (!options.metadataOnly) {
+      url += "&$expand=attachments($select=id,name,contentType,size)";
+    }
     if (cursor) {
-      try {
-        response = await this.client.api(cursor).get();
-      } catch {
-        response = await this.client
-          .api("/me/mailFolders/inbox/messages/delta")
-          .top(top)
-          .select(select)
-          .orderby("receivedDateTime desc")
-          .get();
-      }
-    } else {
-      response = await this.client
-        .api("/me/mailFolders/inbox/messages/delta")
-        .top(top)
-        .select(select)
-        .orderby("receivedDateTime desc")
-        .get();
+      url = cursor;
     }
 
-    const messages: Array<Record<string, unknown>> = response.value ?? [];
-    const deltaLink: string | null = response["@odata.deltaLink"] ?? null;
-    const nextLink: string | null = response["@odata.nextLink"] ?? null;
-
-    const emails: SyncedEmail[] = [];
-
-    for (const msg of messages) {
-      const email = await this.mapMessage(msg, options.metadataOnly ?? true);
-      if (email) {
-        emails.push(email);
-      }
-    }
-
+    const page = await this.client.api(url).get();
+    const items = (page.value ?? []) as Array<Record<string, unknown>>;
+    const emails = items.map((msg) => this.mapMessage(msg, Boolean(options.metadataOnly)));
     return {
       emails,
-      newCursor: deltaLink ?? nextLink ?? cursor,
+      newCursor: (page["@odata.nextLink"] as string) ?? null,
     };
   }
 
-  private async mapMessage(
-    msg: Record<string, unknown>,
-    metadataOnly: boolean
-  ): Promise<SyncedEmail | null> {
-    if (!msg.id) return null;
+  private mapMessage(msg: Record<string, unknown>, metadataOnly: boolean): SyncedEmail {
+    const attachmentsRaw = Array.isArray(msg.attachments) ? msg.attachments : [];
+    const attachments: SyncedAttachment[] = attachmentsRaw.map((att) => ({
+      filename: String(att.name ?? "untitled"),
+      contentType: String(att.contentType ?? "application/octet-stream"),
+      size: typeof att.size === "number" ? att.size : undefined,
+      content: Buffer.alloc(0),
+    }));
 
-    const from = msg.from as { emailAddress?: { address?: string; name?: string } } | undefined;
-    const toRecipients = (msg.toRecipients ?? []) as Array<{
-      emailAddress?: { address?: string };
-    }>;
-    const body = msg.body as { content?: string; contentType?: string } | undefined;
-
-    let attachmentsList: SyncedAttachment[] = [];
-    if (!metadataOnly && msg.hasAttachments && msg.id) {
-      attachmentsList = await this.fetchAttachments(msg.id as string);
-    }
+    const toRecipients = Array.isArray(msg.toRecipients)
+      ? msg.toRecipients
+          .map((recipient) => {
+            const address = (recipient as { emailAddress?: { address?: string } }).emailAddress?.address;
+            return address ?? "";
+          })
+          .filter(Boolean)
+      : [];
 
     return {
-      remoteId: msg.id as string,
-      messageId: (msg.internetMessageId as string) ?? `outlook-${msg.id}`,
-      subject: (msg.subject as string) ?? "(无主题)",
-      sender: from?.emailAddress
-        ? `${from.emailAddress.name ?? ""} <${from.emailAddress.address}>`
-        : "",
-      recipients: toRecipients
-        .map((r) => r.emailAddress?.address ?? "")
-        .filter(Boolean),
-      snippet: (msg.bodyPreview as string) ?? "",
-      bodyText: metadataOnly
-        ? null
-        : body?.contentType === "text"
-          ? (body.content ?? "")
-          : "",
-      bodyHtml: metadataOnly
-        ? null
-        : body?.contentType === "html"
-          ? (body.content ?? "")
-          : "",
-      receivedAt: msg.receivedDateTime
-        ? Math.floor(new Date(msg.receivedDateTime as string).getTime() / 1000)
-        : Math.floor(Date.now() / 1000),
+      remoteId: String(msg.id),
+      messageId: String(msg.internetMessageId ?? msg.id),
+      subject: String(msg.subject ?? "(无主题)"),
+      sender: String((msg.from as { emailAddress?: { address?: string } })?.emailAddress?.address ?? ""),
+      recipients: toRecipients,
+      snippet: String(msg.bodyPreview ?? ""),
+      bodyText: metadataOnly ? null : String((msg.body as { content?: string })?.content ?? ""),
+      bodyHtml: metadataOnly ? null : String((msg.body as { content?: string })?.content ?? ""),
+      receivedAt: Math.floor(new Date(String(msg.receivedDateTime)).getTime() / 1000),
       folder: "INBOX",
-      attachments: attachmentsList,
+      attachments,
     };
-  }
-
-  private async fetchAttachments(messageId: string): Promise<SyncedAttachment[]> {
-    const res = await this.client.api(`/me/messages/${messageId}/attachments`).get();
-
-    const items: Array<Record<string, unknown>> = res.value ?? [];
-    const result: SyncedAttachment[] = [];
-
-    for (const att of items) {
-      if (att["@odata.type"] === "#microsoft.graph.fileAttachment" && att.contentBytes) {
-        result.push({
-          filename: (att.name as string) ?? "untitled",
-          contentType: (att.contentType as string) ?? "application/octet-stream",
-          size: (att.size as number) ?? 0,
-          content: Buffer.from(att.contentBytes as string, "base64"),
-        });
-      }
-    }
-
-    return result;
   }
 }

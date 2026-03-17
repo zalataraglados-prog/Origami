@@ -47,6 +47,7 @@ const baseAccount = {
   email: "user@example.com",
   displayName: "User",
   credentials: "encrypted",
+  oauthAppId: null,
   presetKey: null,
   authUser: null,
   imapHost: null,

@@ -7,6 +7,7 @@ export const accounts = sqliteTable("accounts", {
   email: text("email").notNull().unique(),
   displayName: text("display_name"),
   credentials: text("credentials").notNull(), // AES-encrypted JSON
+  oauthAppId: text("oauth_app_id"),
   presetKey: text("preset_key"),
   authUser: text("auth_user"),
   imapHost: text("imap_host"),

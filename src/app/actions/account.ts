@@ -8,6 +8,7 @@ import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { accounts, attachments, emails, type Account } from "@/lib/db/schema";
 import { getMailboxPreset } from "@/lib/providers/imap-smtp/presets";
+import { getAccountWriteBackAvailability } from "@/lib/providers/writeBack";
 import { getAccountRecordById, listAccounts } from "@/lib/queries/accounts";
 import { deleteAttachment } from "@/lib/r2";
 
@@ -336,24 +337,43 @@ export async function updateAccountInitialFetchLimit(
   });
 }
 
+function buildEligibleWriteBackPatch(
+  account: Account,
+  settings: { syncReadBack?: boolean; syncStarBack?: boolean }
+) {
+  const availability = getAccountWriteBackAvailability(account);
+  const patch: { syncReadBack?: number; syncStarBack?: number } = {};
+
+  if (settings.syncReadBack !== undefined) {
+    if (!settings.syncReadBack || availability.canWriteBackRead) {
+      patch.syncReadBack = settings.syncReadBack ? 1 : 0;
+    }
+  }
+
+  if (settings.syncStarBack !== undefined) {
+    if (!settings.syncStarBack || availability.canWriteBackStar) {
+      patch.syncStarBack = settings.syncStarBack ? 1 : 0;
+    }
+  }
+
+  return patch;
+}
+
 export async function updateAccountWriteBackSettings(
   id: string,
   settings: { syncReadBack?: boolean; syncStarBack?: boolean }
 ) {
   return runLoggedAction("updateAccountWriteBackSettings", async () => {
-    const patch: { syncReadBack?: number; syncStarBack?: number } = {};
-
-    if (settings.syncReadBack !== undefined) {
-      patch.syncReadBack = settings.syncReadBack ? 1 : 0;
+    const account = await getAccountRecordById(id);
+    if (!account) {
+      throw new Error("账号不存在");
     }
 
-    if (settings.syncStarBack !== undefined) {
-      patch.syncStarBack = settings.syncStarBack ? 1 : 0;
-    }
-
-    if (Object.keys(patch).length === 0) return;
+    const patch = buildEligibleWriteBackPatch(account, settings);
+    if (Object.keys(patch).length === 0) return { updated: false, skipped: true };
 
     await db.update(accounts).set(patch).where(eq(accounts.id, id));
+    return { updated: true, skipped: false };
   });
 }
 
@@ -362,19 +382,22 @@ export async function updateAllAccountsWriteBackSettings(settings: {
   syncStarBack?: boolean;
 }) {
   return runLoggedAction("updateAllAccountsWriteBackSettings", async () => {
-    const patch: { syncReadBack?: number; syncStarBack?: number } = {};
+    const accountList = await listAccounts();
+    let updated = 0;
+    let skipped = 0;
 
-    if (settings.syncReadBack !== undefined) {
-      patch.syncReadBack = settings.syncReadBack ? 1 : 0;
+    for (const account of accountList) {
+      const patch = buildEligibleWriteBackPatch(account, settings);
+      if (Object.keys(patch).length === 0) {
+        skipped += 1;
+        continue;
+      }
+
+      await db.update(accounts).set(patch).where(eq(accounts.id, account.id));
+      updated += 1;
     }
 
-    if (settings.syncStarBack !== undefined) {
-      patch.syncStarBack = settings.syncStarBack ? 1 : 0;
-    }
-
-    if (Object.keys(patch).length === 0) return;
-
-    await db.update(accounts).set(patch);
+    return { updated, skipped };
   });
 }
 

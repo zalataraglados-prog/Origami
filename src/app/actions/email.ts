@@ -11,6 +11,7 @@ import {
   listEmails,
 } from "@/lib/queries/emails";
 import { writeBackRead, writeBackStar, type WriteBackResult } from "@/lib/providers/writeBack";
+import { revalidateMailboxPages } from "@/lib/revalidate";
 import { getHydratedEmailDetail, hydrateEmailIfNeeded } from "@/lib/services/email-service";
 
 type WriteBackKind = "read" | "star";
@@ -191,6 +192,8 @@ export async function markRead(emailId: string) {
     } catch (error) {
       console.warn(`[writeback:read] failed to prepare for ${emailId}:`, error);
     }
+
+    revalidateMailboxPages();
   });
 }
 
@@ -210,6 +213,8 @@ export async function toggleStar(emailId: string) {
     } catch (error) {
       console.warn(`[writeback:star] failed to prepare for ${emailId}:`, error);
     }
+
+    revalidateMailboxPages();
   });
 }
 
@@ -226,6 +231,8 @@ export async function setStarred(emailIds: string[], starred = true) {
     } catch (error) {
       console.warn(`[writeback:star] failed to prepare for ${emailIds.join(",")}:`, error);
     }
+
+    revalidateMailboxPages();
   });
 }
 
@@ -236,6 +243,8 @@ export async function markDone(emailIds: string[], done = true) {
       .update(emails)
       .set({ localDone: done ? 1 : 0 })
       .where(inArray(emails.id, emailIds));
+
+    revalidateMailboxPages();
   });
 }
 
@@ -246,6 +255,8 @@ export async function markArchived(emailIds: string[], archived = true) {
       .update(emails)
       .set({ localArchived: archived ? 1 : 0 })
       .where(inArray(emails.id, emailIds));
+
+    revalidateMailboxPages();
   });
 }
 
@@ -257,6 +268,8 @@ export async function snooze(emailIds: string[], snoozeUntil: Date | string) {
       .update(emails)
       .set({ localSnoozeUntil: unix })
       .where(inArray(emails.id, emailIds));
+
+    revalidateMailboxPages();
   });
 }
 
@@ -267,6 +280,8 @@ export async function clearSnooze(emailIds: string[]) {
       .update(emails)
       .set({ localSnoozeUntil: null })
       .where(inArray(emails.id, emailIds));
+
+    revalidateMailboxPages();
   });
 }
 

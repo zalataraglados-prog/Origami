@@ -1,6 +1,6 @@
 # 部署指南
 
-如果你只想走最短路径：**填好 `.env` → `npm run db:setup` → 部署到 Vercel → 在 `/accounts` 里接邮箱。**
+如果你只想走最短路径：**填好 `.env` → `npm run db:setup` → 部署到 Vercel → GitHub 登录完成 `/setup` → 在 `/accounts` 里接邮箱。**
 
 这份文档会把这条路径展开，并把关键环境变量、OAuth 与生产校验说明清楚。
 
@@ -18,9 +18,12 @@
 | 变量 | 必填 | 说明 |
 |---|---:|---|
 | `NEXT_PUBLIC_APP_URL` | 是 | 公开访问地址，用于 OAuth callback |
-| `ACCESS_TOKEN` | 是 | 单用户登录口令 |
-| `CRON_SECRET` | 是 | `/api/cron/sync` 的 Bearer 密钥 |
+| `GITHUB_CLIENT_ID` | 是 | GitHub 登录 OAuth app client id |
+| `GITHUB_CLIENT_SECRET` | 是 | GitHub 登录 OAuth app client secret |
 | `ENCRYPTION_KEY` | 是 | 64 位十六进制字符串，用于 AES-256-GCM |
+| `GITHUB_ALLOWED_LOGIN` | 否 | 限制允许完成首次绑定 / 登录的 GitHub 用户名 |
+| `AUTH_SECRET` | 否 | session 签名密钥；不填时回退到 `ENCRYPTION_KEY` |
+| `CRON_SECRET` | 否 | `/api/cron/sync` 的 Bearer 密钥；不填时自动派生 |
 
 ### 数据库
 
@@ -68,7 +71,97 @@ npm run db:setup
 因为项目已经有历史演进。  
 对新部署来说，你真正关心的是“把当前 schema 正确建起来”，而不是先理解所有迁移历史。
 
-## 第 3 步：配置 OAuth
+## 第 3 步：配置 GitHub 登录
+
+你需要先创建一个 GitHub OAuth App，用于登录到 Origami 本身。
+
+### GitHub OAuth App 里要填什么
+
+在 GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App** 中，至少填写：
+
+- **Application name**：例如 `Origami Local` / `Origami Production`
+- **Homepage URL**：你的应用公开地址
+- **Authorization callback URL**：`<APP_URL>/api/auth/github/callback`
+
+对应示例：
+
+- 本地：
+  - Homepage URL：`http://localhost:3000`
+  - Callback URL：`http://localhost:3000/api/auth/github/callback`
+- 生产：
+  - Homepage URL：`https://mail.example.com`
+  - Callback URL：`https://mail.example.com/api/auth/github/callback`
+
+创建后，点击 **Generate a new client secret**，把值填到：
+
+```txt
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+### 推荐的几种 GitHub Auth 配置方式
+
+#### 方案 A：本地开发单独一个 OAuth App（最省事）
+
+适合只在本机调试：
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+优点：
+
+- 配置最少
+- callback URL 很明确
+- 不容易把生产配置弄坏
+
+#### 方案 B：本地 / 生产各自一个 OAuth App（推荐）
+
+推荐把环境拆开：
+
+- `Origami Local` → `http://localhost:3000/api/auth/github/callback`
+- `Origami Production` → `https://your-domain/api/auth/github/callback`
+
+优点：
+
+- callback URL 不串
+- 更容易轮换 secret
+- 生产排障更清晰
+
+#### 方案 C：公网单用户实例 + `GITHUB_ALLOWED_LOGIN`（强烈推荐）
+
+如果你的实例暴露在公网，建议显式设置：
+
+```txt
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+这样即使别人提前打开了 `/login`，也不能完成 owner 绑定。
+
+#### 方案 D：不设置 `GITHUB_ALLOWED_LOGIN`（仅适合完全私有环境）
+
+如果你的服务只在内网、Tailscale、SSH 隧道后面，且你确定不会被其他人先访问，也可以不设置 `GITHUB_ALLOWED_LOGIN`。
+
+但对公网部署来说，这不是推荐方案。
+
+### 首次绑定会发生什么
+
+- 第一次成功登录且满足限制条件的 GitHub 用户，会在数据库里绑定为实例 owner
+- 之后登录校验的是 **GitHub user id**，不是用户名文本
+- 即使你 later 改了 GitHub login，只要是同一个账号，仍然可以登录
+
+### 常见坑
+
+- `NEXT_PUBLIC_APP_URL` 必须和你在 GitHub OAuth App 里填写的地址一致
+- callback URL 必须精确到 `/api/auth/github/callback`
+- 改了域名后，记得同时更新 GitHub OAuth App 和环境变量
+- 如果你误绑了 owner，通常需要清理 `app_installation` 记录后重新初始化
+- 如果想让 session 与加密密钥解耦，建议额外设置 `AUTH_SECRET`
+
+## 第 4 步：配置邮箱 OAuth
 
 ### Gmail
 
@@ -112,7 +205,7 @@ Origami 目前使用这些 scopes：
 - 个人最小部署：先用环境变量默认 app
 - 想分环境 / 分租户 / 分 provider app：再逐步切到数据库版 app
 
-## 第 4 步：配置 IMAP/SMTP 邮箱
+## 第 5 步：配置 IMAP/SMTP 邮箱
 
 Origami 当前支持：
 
@@ -128,7 +221,7 @@ Origami 当前支持：
 - 授权码或密码
 - 使用 custom 时的 IMAP / SMTP host、port、secure 配置
 
-## 第 5 步：部署到 Vercel
+## 第 6 步：部署到 Vercel
 
 建议流程：
 
@@ -159,12 +252,14 @@ Origami 当前支持：
 Authorization: Bearer <CRON_SECRET>
 ```
 
+如果你没有显式填写 `CRON_SECRET`，服务会自动从 `AUTH_SECRET`（或 `ENCRYPTION_KEY`）派生一个等效 secret。**但如果你使用平台 cron（例如 Vercel Cron），仍然推荐显式配置 `CRON_SECRET`**，否则调度器端通常不知道该发哪个 Bearer token。
+
 ## 生产检查清单
 
 部署后建议逐项确认：
 
 - `/login` 可以访问
-- 正确的 `ACCESS_TOKEN` 能进入应用
+- GitHub 登录成功后能进入 `/setup` 或首页
 - `/accounts` 正常加载
 - Gmail OAuth callback 可用
 - Outlook OAuth callback 可用
@@ -182,9 +277,18 @@ Authorization: Bearer <CRON_SECRET>
 - 新环境优先走 `db:setup`
 - 老账号如果要切换 OAuth app，按账号重新授权，不要只改数据库字段
 
+## 详细分步文档
+
+如果你不想只看这一页的摘要版，而是想按按钮一步一步操作，继续看：
+
+- [GitHub Auth 详细配置](/github-auth)
+- [Cloudflare R2 / Bucket 详细配置](/r2-storage)
+- [Gmail OAuth 详细配置](/gmail-oauth)
+- [Outlook OAuth 详细配置](/outlook-oauth)
+
 ## 已知注意事项
 
 - Done / Archive / Snooze 仍是本地状态，不回写 provider
 - Read / Star 回写依赖 provider 能力与 scope
 - Outlook 当前仍限制单附件 < 3 MB
-- provider callback URL 必须与配置完全一致
+- GitHub / Gmail / Outlook callback URL 都必须与配置完全一致

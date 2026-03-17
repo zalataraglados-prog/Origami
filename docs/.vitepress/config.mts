@@ -16,8 +16,9 @@ export default defineConfig({
         nav: [
           { text: "首页", link: "/" },
           { text: "快速开始", link: "/quick-start" },
-          { text: "架构", link: "/architecture" },
           { text: "部署", link: "/deployment" },
+          { text: "详细配置", link: "/github-auth" },
+          { text: "架构", link: "/architecture" },
           { text: "项目结构", link: "/project-structure" },
           { text: "FAQ", link: "/faq" },
           { text: "GitHub", link: "https://github.com/theLucius7/Origami" }
@@ -30,6 +31,15 @@ export default defineConfig({
               { text: "快速开始", link: "/quick-start" },
               { text: "部署", link: "/deployment" },
               { text: "FAQ", link: "/faq" }
+            ]
+          },
+          {
+            text: "详细配置",
+            items: [
+              { text: "GitHub Auth", link: "/github-auth" },
+              { text: "Cloudflare R2 / Bucket", link: "/r2-storage" },
+              { text: "Gmail OAuth", link: "/gmail-oauth" },
+              { text: "Outlook OAuth", link: "/outlook-oauth" }
             ]
           },
           {
@@ -73,8 +83,9 @@ export default defineConfig({
         nav: [
           { text: "Home", link: "/en/" },
           { text: "Quick Start", link: "/en/quick-start" },
-          { text: "Architecture", link: "/en/architecture" },
           { text: "Deployment", link: "/en/deployment" },
+          { text: "Detailed Setup", link: "/en/github-auth" },
+          { text: "Architecture", link: "/en/architecture" },
           { text: "Project Structure", link: "/en/project-structure" },
           { text: "FAQ", link: "/en/faq" },
           { text: "GitHub", link: "https://github.com/theLucius7/Origami" }
@@ -87,6 +98,15 @@ export default defineConfig({
               { text: "Quick Start", link: "/en/quick-start" },
               { text: "Deployment", link: "/en/deployment" },
               { text: "FAQ", link: "/en/faq" }
+            ]
+          },
+          {
+            text: "Detailed Setup",
+            items: [
+              { text: "GitHub Auth", link: "/en/github-auth" },
+              { text: "Cloudflare R2 / Bucket", link: "/en/r2-storage" },
+              { text: "Gmail OAuth", link: "/en/gmail-oauth" },
+              { text: "Outlook OAuth", link: "/en/outlook-oauth" }
             ]
           },
           {
@@ -130,8 +150,9 @@ export default defineConfig({
         nav: [
           { text: "ホーム", link: "/ja/" },
           { text: "クイックスタート", link: "/ja/quick-start" },
-          { text: "アーキテクチャ", link: "/ja/architecture" },
           { text: "デプロイ", link: "/ja/deployment" },
+          { text: "詳細設定", link: "/ja/github-auth" },
+          { text: "アーキテクチャ", link: "/ja/architecture" },
           { text: "プロジェクト構成", link: "/ja/project-structure" },
           { text: "FAQ", link: "/ja/faq" },
           { text: "GitHub", link: "https://github.com/theLucius7/Origami" }
@@ -144,6 +165,15 @@ export default defineConfig({
               { text: "クイックスタート", link: "/ja/quick-start" },
               { text: "デプロイ", link: "/ja/deployment" },
               { text: "FAQ", link: "/ja/faq" }
+            ]
+          },
+          {
+            text: "詳細設定",
+            items: [
+              { text: "GitHub Auth", link: "/ja/github-auth" },
+              { text: "Cloudflare R2 / Bucket", link: "/ja/r2-storage" },
+              { text: "Gmail OAuth", link: "/ja/gmail-oauth" },
+              { text: "Outlook OAuth", link: "/ja/outlook-oauth" }
             ]
           },
           {

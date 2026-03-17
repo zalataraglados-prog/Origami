@@ -29,6 +29,26 @@ Origami 选择把它们定义为**本地生产力状态**，从而换取：
 - 排错更直接
 - 文档更清楚
 
+## GitHub 登录如果配不起来，先检查什么？
+
+按这个顺序看，通常最快：
+
+1. `NEXT_PUBLIC_APP_URL` 是否真的是你当前访问的地址
+2. GitHub OAuth App 里的 **Homepage URL** 是否和应用地址一致
+3. GitHub OAuth App 里的 **Authorization callback URL** 是否精确写成：
+   - `http://localhost:3000/api/auth/github/callback`
+   - 或 `https://你的域名/api/auth/github/callback`
+4. `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` 是否填错、带了空格、用了别的环境的值
+5. 如果是公网部署，是否设置了 `GITHUB_ALLOWED_LOGIN`
+6. 如果已经完成首次绑定，当前登录的 GitHub 账号是否就是当初绑定 owner 的那个账号
+
+常见现象对应：
+
+- **跳转后直接报 callback 错误**：大多是 callback URL 或 client secret 不匹配
+- **别人能看到登录页但进不去**：通常是 `GITHUB_ALLOWED_LOGIN` 生效了，这是正常的
+- **你改了 GitHub 用户名后担心登不进去**：通常没事，Origami 绑定的是 GitHub user id，不是纯用户名文本
+- **你绑定错了 owner**：通常需要清理 `app_installation` 记录后重新初始化
+
 ## 如果我想多账号、多 OAuth app，会不会很麻烦？
 
 不会。  

@@ -22,3 +22,23 @@ provider ごとに意味や実装が大きく異なるためです。
 
 一人のオペレーターが複数 inbox を管理するユースケースに集中しているためです。
 そのおかげで、認証・運用・保守がかなり軽くなっています。
+
+## GitHub サインインがうまく動かないときは何を確認すればいいですか？
+
+まずは次の順番で確認すると早いです。
+
+1. `NEXT_PUBLIC_APP_URL` が実際に開いている URL と一致しているか
+2. GitHub OAuth App の **Homepage URL** がアプリ URL と一致しているか
+3. GitHub OAuth App の **Authorization callback URL** が正確に次になっているか
+   - `http://localhost:3000/api/auth/github/callback`
+   - または `https://your-domain/api/auth/github/callback`
+4. `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` が別環境の値になっていないか、コピーミスがないか
+5. 公開運用なら `GITHUB_ALLOWED_LOGIN` が意図通り設定されているか
+6. すでに owner が確定済みなら、その owner の GitHub アカウントでログインしているか
+
+よくあるケース：
+
+- **リダイレクト直後に callback エラー**：callback URL か secret の不一致が多いです
+- **ログイン画面は見えるのに入れない**：`GITHUB_ALLOWED_LOGIN` が効いている可能性があります
+- **GitHub の login 名を変えた**：通常は問題ありません。Origami は user id で owner を見ます
+- **間違った owner を bind してしまった**：通常は `app_installation` をクリアして初期化し直します

@@ -17,9 +17,12 @@
 | 変数 | 必須 | 説明 |
 |---|---:|---|
 | `NEXT_PUBLIC_APP_URL` | はい | OAuth callback に使う公開 URL |
-| `ACCESS_TOKEN` | はい | 単一ユーザー用ログイントークン |
-| `CRON_SECRET` | はい | `/api/cron/sync` 用 Bearer トークン |
+| `GITHUB_CLIENT_ID` | はい | GitHub OAuth app client id |
+| `GITHUB_CLIENT_SECRET` | はい | GitHub OAuth app client secret |
 | `ENCRYPTION_KEY` | はい | 64 文字の 16 進 AES-256-GCM キー |
+| `GITHUB_ALLOWED_LOGIN` | いいえ | 許可する GitHub login を制限する任意設定 |
+| `AUTH_SECRET` | いいえ | session 署名鍵。未設定時は `ENCRYPTION_KEY` にフォールバック |
+| `CRON_SECRET` | いいえ | `/api/cron/sync` 用 Bearer トークン。明示設定を推奨 |
 
 ### Database
 
@@ -50,6 +53,77 @@ npm run db:setup
 - `npm run db:migrate`
 - `npm run db:push`
 
+## GitHub Auth 設定
+
+Origami 自体へのログイン用に、GitHub OAuth App を作成します。
+
+### GitHub OAuth App に入れる値
+
+GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App** で、次を設定します。
+
+- **Application name**: `Origami Local` / `Origami Production`
+- **Homepage URL**: アプリの URL
+- **Authorization callback URL**: `<APP_URL>/api/auth/github/callback`
+
+例：
+
+- ローカル
+  - Homepage URL: `http://localhost:3000`
+  - Callback URL: `http://localhost:3000/api/auth/github/callback`
+- 本番
+  - Homepage URL: `https://mail.example.com`
+  - Callback URL: `https://mail.example.com/api/auth/github/callback`
+
+作成後、生成された値を次へ入れます。
+
+```txt
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+### おすすめの GitHub Auth 構成
+
+#### パターン A: ローカル開発専用の OAuth App
+
+素早く試すだけならこれで十分です。
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+#### パターン B: ローカル / 本番で OAuth App を分ける（推奨）
+
+- local: `http://localhost:3000/api/auth/github/callback`
+- production: `https://your-domain/api/auth/github/callback`
+
+callback URL の衝突を避けやすく、secret の管理も楽です。
+
+#### パターン C: 公開単一ユーザー運用 + `GITHUB_ALLOWED_LOGIN`
+
+公開 URL で運用するなら、次を設定するのがおすすめです。
+
+```txt
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+これで想定外のユーザーが先に owner を claim するのを防ぎやすくなります。
+
+### 初回 owner バインドについて
+
+- 最初に条件を満たしてログインした GitHub ユーザーが owner になります
+- 以後は GitHub の user id で照合します
+- login 名を変更しても、同じ GitHub アカウントなら通常は継続ログインできます
+
+### よくあるハマりどころ
+
+- `NEXT_PUBLIC_APP_URL` と GitHub 側の URL は一致させる
+- callback URL は `/api/auth/github/callback` まで正確に書く
+- ドメイン変更時は GitHub 側と env の両方を更新する
+- auth 署名を暗号化キーと分離したいなら `AUTH_SECRET` を設定する
+
 ## OAuth 設定
 
 ### Gmail
@@ -68,9 +142,18 @@ npm run db:setup
 - `Mail.Send`
 - `offline_access`
 
+## さらに詳しいガイド
+
+このページの要約版だけでなく、ボタンごとの手順で見たい場合は次へ進んでください。
+
+- [GitHub Auth 詳細設定](/ja/github-auth)
+- [Cloudflare R2 / bucket 詳細設定](/ja/r2-storage)
+- [Gmail OAuth 詳細設定](/ja/gmail-oauth)
+- [Outlook OAuth 詳細設定](/ja/outlook-oauth)
+
 ## 本番チェック
 
-- `ACCESS_TOKEN` でログインできる
+- GitHub サインイン後に `/setup` またはホームへ進める
 - `/accounts` が開く
 - OAuth callback が動く
 - IMAP/SMTP アカウント追加ができる

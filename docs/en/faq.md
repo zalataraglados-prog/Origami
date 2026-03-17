@@ -24,6 +24,26 @@ QQ is no longer a read-only edge case; it supports IMAP receive + SMTP send.
 Because the project is intentionally optimized for one operator handling multiple inboxes.
 That keeps deployment, auth, and maintenance lightweight.
 
+## What should I check first if GitHub sign-in is not working?
+
+Check these in order:
+
+1. `NEXT_PUBLIC_APP_URL` matches the actual URL you are visiting
+2. the GitHub OAuth App **Homepage URL** matches your app URL
+3. the GitHub OAuth App **Authorization callback URL** is exactly:
+   - `http://localhost:3000/api/auth/github/callback`
+   - or `https://your-domain/api/auth/github/callback`
+4. `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` are from the correct environment and have no copy-paste mistakes
+5. for public deployments, `GITHUB_ALLOWED_LOGIN` is set as intended
+6. if the installation was already claimed, you are signing in with the same GitHub account that owns the instance
+
+Common cases:
+
+- **callback error right after redirect**: usually a callback URL or secret mismatch
+- **someone can see the login page but cannot enter**: often `GITHUB_ALLOWED_LOGIN` is doing its job
+- **you renamed your GitHub login**: usually fine, because Origami stores the GitHub user id
+- **the wrong owner claimed the instance**: you usually need to clear the `app_installation` record and initialize again
+
 ## Why store attachments in R2?
 
 Because attachment binaries are large objects.

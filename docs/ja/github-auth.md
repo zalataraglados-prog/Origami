@@ -1,111 +1,28 @@
 # GitHub Auth 詳細設定
 
-このページは **Origami 本体へのログイン設定** だけを説明します。
+このページでは **本番環境の Origami に GitHub ログインを設定する方法** だけを扱います。
 
-メール接続用 OAuth とは別です。
+これは Origami 自体へのログイン設定であり、Gmail / Outlook のメール接続設定ではありません。
 
-- **GitHub Auth**：Origami 自体にログインするための認証
-- **Gmail / Outlook OAuth**：メールアカウントを Origami に接続するための認証
-
-今の目標が：
-
-> 「Origami を開いて、GitHub でちゃんとログインできるようにしたい」
-
-なら、このページを進めてください。
-
----
-
-## このステップが終わると、何が手元にあるべき？
-
-最終的には、次の値を `.env` に入れます。
+## 最終的に `.env` に入れる値
 
 ```txt
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=https://mail.example.com
 GITHUB_CLIENT_ID=...
 GITHUB_CLIENT_SECRET=...
 GITHUB_ALLOWED_LOGIN=your-github-login
 AUTH_SECRET=...
 ```
 
-意味は次の通りです。
+## 公式リファレンス
 
-- `NEXT_PUBLIC_APP_URL`：Origami を開く URL
-- `GITHUB_CLIENT_ID`：GitHub OAuth App の Client ID
-- `GITHUB_CLIENT_SECRET`：GitHub OAuth App の Client Secret
-- `GITHUB_ALLOWED_LOGIN`：許可する GitHub login を制限する設定。**公開運用では強く推奨**
-- `AUTH_SECRET`：ログイン session の署名鍵。未設定時は `ENCRYPTION_KEY` にフォールバック
-
-このステップは、ざっくり言うと：
-
-> GitHub で OAuth App を作り、そのとき GitHub が返してくれる値を `.env` に写す
-
-という作業です。
-
----
-
-## このステップでは、どの 2 つの場所を行き来する？
-
-このステップでは、主に **2 つの場所** を行き来します。
-
-### 場所 A：GitHub の設定画面
-
-ここでは：
-
-- OAuth App を作る
-- Homepage URL を入れる
-- Authorization callback URL を入れる
-- Client ID を確認する
-- Client Secret を生成する
-
-### 場所 B：Origami プロジェクトの `.env`
-
-ここには、次の値を入れます。
-
-```txt
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-GITHUB_ALLOWED_LOGIN=
-AUTH_SECRET=
-NEXT_PUBLIC_APP_URL=
-```
-
-一番簡単な覚え方は：
-
-> **GitHub 側で値を作る。`.env` 側で受け取る。**
-
----
-
-## 公式リンク
-
-- GitHub 公式: OAuth App の作成  
+- GitHub: OAuth App の作成  
   <https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app>
 
----
-
-## 始める前に、先にメモしておく値
-
-先にメモしておくと、画面を行き来しても写し間違えにくいです。
-
-### ローカル開発
+## 先にメモしておく値
 
 ```txt
-Origami の URL
-http://localhost:3000
-
-GitHub Homepage URL
-http://localhost:3000
-
-GitHub Authorization callback URL
-http://localhost:3000/api/auth/github/callback
-
-許可する GitHub login
-your-github-login
-```
-
-### 本番環境
-
-```txt
-Origami の URL
+本番 URL
 https://mail.example.com
 
 GitHub Homepage URL
@@ -118,315 +35,150 @@ https://mail.example.com/api/auth/github/callback
 your-github-login
 ```
 
-> 強くおすすめ: **ローカル用 1 つ、本番用 1 つ** の GitHub OAuth App を分ける。
+## 行き来する場所
 
----
+### 場所 A: GitHub 設定画面
 
-## もし画面がこのページと少し違って見えても
+ここで行うこと：
 
-GitHub は UI や文言をときどき変えますが、次のキーワードが見つかれば大丈夫です。
+- OAuth App の作成
+- Homepage URL の入力
+- Authorization callback URL の入力
+- Client Secret の生成
 
-- `Settings`
-- `Developer settings`
-- `OAuth Apps`
-- `New OAuth App`
-- `Register a new application`
+### 場所 B: Origami の `.env`
 
-ボタン名が少し違っても、左側ナビゲーションとページ見出しを優先して見てください。
-
----
-
-## どの構成を選べばいい？
-
-### パターン A: ローカル開発だけ
-
-ローカルで GitHub ログインを試したいだけなら、次の構成で十分です。
+ここに値を戻します：
 
 ```txt
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
-GITHUB_ALLOWED_LOGIN=your-github-login
+NEXT_PUBLIC_APP_URL=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_ALLOWED_LOGIN=
+AUTH_SECRET=
 ```
 
-### パターン B: ローカル用と本番用で分ける（推奨）
+## クリック手順
 
-おすすめの名前：
+### 1. GitHub の OAuth App 画面を開く
 
-1. `Origami Local`
-2. `Origami Production`
+GitHub で次の順に進みます。
 
-こうしておくと：
-
-- callback URL が混ざらない
-- secret が混ざらない
-- 後からどちらの app か分かりやすい
-
-### パターン C: 公開単一ユーザー運用
-
-公開 URL で動かすなら、次も設定してください。
-
-```txt
-GITHUB_ALLOWED_LOGIN=your-github-login
-```
-
-これで他人が先に owner を claim するのを防ぎやすくなります。
-
----
-
-## ユーザークリック手順: GitHub OAuth App をゼロから作る
-
-ここから先は、**そのままクリックしていけばよい** 形で書きます。
-
-### Step 1: GitHub の OAuth App 画面を開く
-
-GitHub の中で、次の順にクリックします。
-
-1. 右上の自分のアバター
+1. 右上のアバター
 2. **Settings**
-3. 左側の **Developer settings**
+3. **Developer settings**
 4. **OAuth Apps**
 5. **New OAuth App**
 
-初回は：
+### 2. OAuth App フォームを入力する
 
-- **Register a new application**
-
-と表示されることもありますが、同じ入口です。
-
-### この時点で何が見えるはず？
-
-次のような入力欄があるフォーム画面に入っているはずです。
-
-- Application name
-- Homepage URL
-- Application description
-- Authorization callback URL
-
-これらが見えていなければ、まだ正しいページではありません。
-
----
-
-### Step 2: フォームを埋める
-
-ここでは「この欄に何を入れるか」をそのまま書きます。
-
-#### 1) Application name
-
-次のどちらかがおすすめです。
-
-- ローカル: `Origami Local`
-- 本番: `Origami Production`
-
-#### 2) Homepage URL
-
-Origami を実際に開く URL を入れます。
-
-- ローカル: `http://localhost:3000`
-- 本番: `https://mail.example.com`
-
-#### 3) Application description
-
-任意です。例えば：
+#### Application name
 
 ```txt
-Single-user inbox app login for Origami
+Origami Production
 ```
 
-#### 4) Authorization callback URL
-
-ここが最重要です。
-
-- ローカル: `http://localhost:3000/api/auth/github/callback`
-- 本番: `https://mail.example.com/api/auth/github/callback`
-
-### ここで一番起きやすいミス
-
-callback URL にトップページ URL を入れてしまうことです。これは誤りです。
-
-正しい形は必ず：
+#### Homepage URL
 
 ```txt
-<APP_URL>/api/auth/github/callback
+https://mail.example.com
 ```
 
-つまり **`/api/auth/github/callback` を必ず含める** 必要があります。
+#### Application description
 
----
+任意ですが、たとえば次のように書けます。
 
-### Step 3: 登録ボタンを押す
+```txt
+Single-user inbox login for Origami
+```
 
-入力が終わったら、次を押します。
+#### Authorization callback URL
+
+ここは必ず次の値にします。
+
+```txt
+https://mail.example.com/api/auth/github/callback
+```
+
+ホーム URL をそのまま入れてしまうのが最も多いミスです。正しい値には `/api/auth/github/callback` が必須です。
+
+### 3. アプリを登録する
 
 - **Register application**
 
-押すと、この OAuth App の詳細画面に移動します。
+### 4. Client Secret を生成する
 
-### この時点で何が見えるはず？
-
-通常は：
-
-- アプリ名
-- Client ID
-- secret を生成するためのボタン
-
-が見えます。
-
-この時点では **Client Secret はまだ表示されていません**。まだ生成していないからです。
-
----
-
-### Step 4: Client Secret を生成する
-
-詳細画面で、次をクリックします。
+アプリ詳細画面で：
 
 - **Generate a new client secret**
 
-GitHub が新しい secret を表示します。
-
-ここで次の 2 つを必ず保存してください。
+次の 2 つを必ずコピーします。
 
 1. **Client ID**
 2. **Client Secret**
 
-これらは `.env` に戻して、こう入れます。
+## `.env` に戻って記入する
 
 ```txt
-GITHUB_CLIENT_ID=<Client ID>
-GITHUB_CLIENT_SECRET=<Client Secret>
-```
-
-> Important: Client Secret はフル表示が一回だけのことが多いです。必ずその場でコピーしてください。
-
----
-
-## `.env` に戻ったら、どの行を埋める？
-
-Origami プロジェクトの `.env` に戻って、次のように埋めます。
-
-```txt
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=https://mail.example.com
 GITHUB_CLIENT_ID=Iv1.xxxxxxxxxxxxx
 GITHUB_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
 GITHUB_ALLOWED_LOGIN=your-github-login
 AUTH_SECRET=replace-with-a-random-secret
 ```
 
-### この 5 行を一番シンプルに言い直すと
-
-- `NEXT_PUBLIC_APP_URL`：Origami を開く場所
-- `GITHUB_CLIENT_ID`：GitHub がくれたアプリ ID
-- `GITHUB_CLIENT_SECRET`：GitHub がくれたアプリ secret
-- `GITHUB_ALLOWED_LOGIN`：自分の GitHub login だけ許可する設定
-- `AUTH_SECRET`：ログイン cookie を署名するランダム値
-
-`AUTH_SECRET` がまだない場合は、次で作れます。
+`AUTH_SECRET` がまだない場合は、次で生成できます。
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
----
+## テスト前の確認
 
-## `.env` を埋めたら、すぐこの確認をする
-
-1 項目ずつ確認してください。
-
-- `NEXT_PUBLIC_APP_URL` は実際に開く URL と一致しているか
+- `NEXT_PUBLIC_APP_URL` は本番ドメインか
 - GitHub の **Homepage URL** はそれと一致しているか
-- GitHub の **Authorization callback URL** は `<APP_URL>/api/auth/github/callback` と完全一致しているか
-- `GITHUB_ALLOWED_LOGIN` は GitHub login で、メールアドレスではないか
-- `AUTH_SECRET` は空ではなくランダム値か
+- GitHub の **Authorization callback URL** は `<APP_URL>/api/auth/github/callback` か
+- `GITHUB_ALLOWED_LOGIN` は GitHub の login 名で、メールアドレスではないか
+- `AUTH_SECRET` は空ではないか
 
-ここが合っていれば、GitHub 側はかなり安定します。
+## 動作確認方法
 
----
+デプロイ後、次を開きます。
 
-## 次: Origami に戻ってログインを確認する
-
-プロジェクトディレクトリで次を実行します。
-
-```bash
-npm run dev
+```txt
+https://mail.example.com/login
 ```
 
-そのあと、次を開きます。
+期待する流れ：
 
-- `http://localhost:3000`
+1. GitHub ログインをクリック
+2. GitHub の認可画面へ移動
+3. 認可完了
+4. Origami に戻る
+5. 初回は `/setup` に進む
+6. セットアップ完了後にアプリへ入れる
 
-### この時点で何が見えるはず？
+## よくあるエラー
 
-- Origami のログインページ
-- GitHub ログインボタン
+### 1. GitHub ログイン直後に callback error
 
-GitHub ログインを押した後は、次の流れになるはずです。
+まず次の 3 つを確認します。
 
-1. ブラウザが GitHub の認可画面へ移動
-2. あなたが認可する
-3. GitHub が Origami に戻す
-4. 初回なら `/setup` に入る
-5. setup 完了後、ホームまたは `/accounts` に入れる
+- `NEXT_PUBLIC_APP_URL`
+- GitHub Homepage URL
+- GitHub Authorization callback URL
 
----
-
-## 初回 owner バインドとは？
-
-最初のログイン時に Origami は：
-
-1. すでに owner がいるか確認
-2. まだいなければ現在の GitHub ユーザーを `app_installation` に保存
-3. `/setup` に移動
-4. 以後はその owner アカウントでログイン確認
-
-### ここで一番大事な点
-
-後続の照合は：
-
-- **GitHub user id**
-
-に基づきます。login 文字列だけではありません。
-
-つまり：
-
-- GitHub login 名を変更しても通常は問題ありません
-- 別アカウントに変えると入れません
-
----
-
-## よくある問題を早く見抜くには
-
-### 1. GitHub ログイン後すぐ callback error になる
-
-まず次の 4 つを見ます。
-
-- `NEXT_PUBLIC_APP_URL` は正しいか
-- GitHub の **Homepage URL** は正しいか
-- **Authorization callback URL** は `/api/auth/github/callback` まで正確か
-- ローカルと本番の資格情報を混ぜていないか
-
-### 2. ログイン画面は出るが入れない
-
-次を確認します。
+### 2. ログイン画面は開くのに入れない
 
 ```txt
 GITHUB_ALLOWED_LOGIN=
 ```
 
-これを設定している場合、その GitHub login 以外は通りません。バグではなく、意図した制限です。
+これが設定されている場合、その GitHub login だけがログインできます。
 
-### 3. owner のはずなのに入れない
+### 3. すべて正しく見えるのに失敗する
 
-初回に owner を claim した **同じ GitHub アカウント** でログインしているか確認してください。
-
-### 4. 初回に間違った owner を bind してしまった
-
-通常は `app_installation` レコードをクリアして初期化し直す必要があります。
-
-不安なら先に DB をバックアップしてください。
-
-### 5. だいたい合っているのに失敗する
-
-次の 3 行を並べて、文字単位で比較してみてください。
+次の 3 行を並べて一字ずつ確認してください。
 
 ```txt
 NEXT_PUBLIC_APP_URL=...
@@ -439,28 +191,3 @@ Authorization callback URL=...
 ```txt
 <APP_URL>/api/auth/github/callback
 ```
-
-です。多くの場合、ロジックより path の不足が原因です。
-
----
-
-## 実運用でのおすすめ
-
-一番安全なのは：
-
-1. **ローカル用 GitHub OAuth App を 1 つ**
-2. **本番用 GitHub OAuth App を 1 つ**
-3. **公開運用なら `GITHUB_ALLOWED_LOGIN` を必ず設定**
-4. **`AUTH_SECRET` を明示設定し、`ENCRYPTION_KEY` の再利用を避ける**
-
-これが一番混乱しにくい構成です。
-
----
-
-## 次に読むページ
-
-GitHub ログインが通ったら、次は：
-
-1. [Cloudflare R2 / bucket 詳細設定](/ja/r2-storage)
-2. [Gmail OAuth 詳細設定](/ja/gmail-oauth)
-3. [Outlook OAuth 詳細設定](/ja/outlook-oauth)

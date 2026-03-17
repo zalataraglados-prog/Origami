@@ -69,9 +69,10 @@ Its goal is narrower and more practical:
 
 ## Detailed setup guides
 
-If you are moving from a quick test to a real deployment, these are the more step-by-step pages:
+If you are moving from a quick test to a real deployment, this is the recommended click-by-click order:
 
-- [GitHub Auth detailed setup](/en/github-auth)
-- [Cloudflare R2 / bucket detailed setup](/en/r2-storage)
-- [Gmail OAuth detailed setup](/en/gmail-oauth)
-- [Outlook OAuth detailed setup](/en/outlook-oauth)
+1. [Turso database detailed setup](/en/turso)
+2. [Cloudflare R2 / bucket detailed setup](/en/r2-storage)
+3. [GitHub Auth detailed setup](/en/github-auth)
+4. [Gmail OAuth detailed setup](/en/gmail-oauth)
+5. [Outlook OAuth detailed setup](/en/outlook-oauth)

@@ -279,12 +279,13 @@ Authorization: Bearer <CRON_SECRET>
 
 ## 详细分步文档
 
-如果你不想只看这一页的摘要版，而是想按按钮一步一步操作，继续看：
+如果你不想只看这一页的摘要版，而是想按按钮一步一步操作，推荐按这个顺序继续：
 
-- [GitHub Auth 详细配置](/github-auth)
-- [Cloudflare R2 / Bucket 详细配置](/r2-storage)
-- [Gmail OAuth 详细配置](/gmail-oauth)
-- [Outlook OAuth 详细配置](/outlook-oauth)
+1. [Turso 数据库详细配置](/turso)
+2. [Cloudflare R2 / Bucket 详细配置](/r2-storage)
+3. [GitHub Auth 详细配置](/github-auth)
+4. [Gmail OAuth 详细配置](/gmail-oauth)
+5. [Outlook OAuth 详细配置](/outlook-oauth)
 
 ## 已知注意事项
 

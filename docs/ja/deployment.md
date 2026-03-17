@@ -144,12 +144,13 @@ GITHUB_ALLOWED_LOGIN=your-github-login
 
 ## さらに詳しいガイド
 
-このページの要約版だけでなく、ボタンごとの手順で見たい場合は次へ進んでください。
+このページの要約版だけでなく、ボタンごとの手順で見たい場合は次の順番がおすすめです。
 
-- [GitHub Auth 詳細設定](/ja/github-auth)
-- [Cloudflare R2 / bucket 詳細設定](/ja/r2-storage)
-- [Gmail OAuth 詳細設定](/ja/gmail-oauth)
-- [Outlook OAuth 詳細設定](/ja/outlook-oauth)
+1. [Turso データベース詳細設定](/ja/turso)
+2. [Cloudflare R2 / bucket 詳細設定](/ja/r2-storage)
+3. [GitHub Auth 詳細設定](/ja/github-auth)
+4. [Gmail OAuth 詳細設定](/ja/gmail-oauth)
+5. [Outlook OAuth 詳細設定](/ja/outlook-oauth)
 
 ## 本番チェック
 

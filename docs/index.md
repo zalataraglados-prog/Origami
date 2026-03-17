@@ -108,9 +108,10 @@ Origami 支持在账号级开启回写。
 
 ## 详细配置专题
 
-如果你已经准备开始真正部署，下面这几页是“宝宝式教学”版本：
+如果你已经准备开始真正部署，推荐按这个顺序一步步点：
 
-- [GitHub Auth 详细配置](/github-auth)
-- [Cloudflare R2 / Bucket 详细配置](/r2-storage)
-- [Gmail OAuth 详细配置](/gmail-oauth)
-- [Outlook OAuth 详细配置](/outlook-oauth)
+1. [Turso 数据库详细配置](/turso)
+2. [Cloudflare R2 / Bucket 详细配置](/r2-storage)
+3. [GitHub Auth 详细配置](/github-auth)
+4. [Gmail OAuth 详细配置](/gmail-oauth)
+5. [Outlook OAuth 详细配置](/outlook-oauth)

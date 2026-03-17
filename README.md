@@ -25,12 +25,13 @@
 - [架构说明](https://l7cp.de/Origami/architecture)
 - [FAQ](https://l7cp.de/Origami/faq)
 
-如果你已经准备开始真正部署，继续看这些“宝宝式教学”页面：
+如果你已经准备开始真正部署，推荐按这个顺序看这些“宝宝式教学”页面：
 
-- [GitHub Auth 详细配置](https://l7cp.de/Origami/github-auth)
-- [Cloudflare R2 / Bucket 详细配置](https://l7cp.de/Origami/r2-storage)
-- [Gmail OAuth 详细配置](https://l7cp.de/Origami/gmail-oauth)
-- [Outlook OAuth 详细配置](https://l7cp.de/Origami/outlook-oauth)
+1. [Turso 数据库详细配置](https://l7cp.de/Origami/turso)
+2. [Cloudflare R2 / Bucket 详细配置](https://l7cp.de/Origami/r2-storage)
+3. [GitHub Auth 详细配置](https://l7cp.de/Origami/github-auth)
+4. [Gmail OAuth 详细配置](https://l7cp.de/Origami/gmail-oauth)
+5. [Outlook OAuth 详细配置](https://l7cp.de/Origami/outlook-oauth)
 
 ## 项目定位
 

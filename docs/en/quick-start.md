@@ -12,6 +12,13 @@ You will usually need:
 - a GitHub OAuth App for signing in to Origami
 - Gmail / Outlook OAuth apps if you want those providers
 
+If you do not have those services ready yet, the recommended setup order is:
+
+1. [Create the Turso database first](/en/turso)
+2. [Then set up Cloudflare R2](/en/r2-storage)
+3. [Then configure GitHub Auth](/en/github-auth)
+4. [If needed, configure Gmail / Outlook OAuth last](/en/gmail-oauth)
+
 ## 1. Install and create `.env`
 
 ```bash
@@ -81,10 +88,11 @@ This runs lint, typecheck, tests, app build, and docs build in one path.
 
 ## Where to go next
 
-- Need production setup? Read [Deployment](/en/deployment)
-- Want a safer sign-in setup? Read [GitHub Auth detailed setup](/en/github-auth)
+- Need to prepare the database first? Read [Turso database detailed setup](/en/turso)
 - Want a clearer attachment storage setup? Read [Cloudflare R2 / bucket detailed setup](/en/r2-storage)
+- Want a safer sign-in setup? Read [GitHub Auth detailed setup](/en/github-auth)
 - Want a fuller Gmail walkthrough? Read [Gmail OAuth detailed setup](/en/gmail-oauth)
 - Want a fuller Outlook walkthrough? Read [Outlook OAuth detailed setup](/en/outlook-oauth)
+- Need production setup? Read [Deployment](/en/deployment)
 - Need architectural context? Read [Architecture](/en/architecture)
 - Need product reasoning? Read [FAQ](/en/faq)

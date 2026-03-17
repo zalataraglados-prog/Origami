@@ -12,6 +12,13 @@
 - 一个 GitHub OAuth App（用于登录到 Origami）
 - 如果要接 Gmail / Outlook：对应的邮箱 OAuth app
 
+如果你现在这些都还没有，最推荐的准备顺序是：
+
+1. [先开 Turso 数据库](/turso)
+2. [再开 Cloudflare R2](/r2-storage)
+3. [再配 GitHub Auth](/github-auth)
+4. [需要的话再配 Gmail / Outlook OAuth](/gmail-oauth)
+
 ## 第 1 步：安装依赖并复制环境变量模板
 
 ```bash
@@ -154,10 +161,11 @@ GitHub OAuth 能在不引入完整多用户系统的前提下，提供比明文 
 
 ## 下一步看什么
 
-- 要上线：看 [部署指南](/deployment)
-- 想把登录配得很稳：看 [GitHub Auth 详细配置](/github-auth)
+- 要先把数据库开好：看 [Turso 数据库详细配置](/turso)
 - 想把附件存储配清楚：看 [Cloudflare R2 / Bucket 详细配置](/r2-storage)
+- 想把登录配得很稳：看 [GitHub Auth 详细配置](/github-auth)
 - 想把 Gmail 接得更稳：看 [Gmail OAuth 详细配置](/gmail-oauth)
 - 想把 Outlook 接得更稳：看 [Outlook OAuth 详细配置](/outlook-oauth)
+- 要上线：看 [部署指南](/deployment)
 - 想理解内部设计：看 [架构说明](/architecture)
 - 想知道为什么有些状态只保存在本地：看 [FAQ](/faq)

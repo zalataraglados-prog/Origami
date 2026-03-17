@@ -1,6 +1,8 @@
 # Origami ✉️
 
-> A privacy-friendly unified inbox for individuals or a single operator inside a small team, aggregating Gmail / Outlook / QQ in one place and designed for self-hosting. （一个面向个人或小团队单一操作席位的统一收件箱，可聚合 Gmail / Outlook / QQ，强调隐私与自托管。）
+> **EN:** A privacy-friendly unified inbox for individuals or a single operator inside a small team, aggregating Gmail / Outlook / QQ in one place and designed for self-hosting.
+>
+> **中文：** 一个面向个人或小团队单一操作席位的统一收件箱，可聚合 Gmail / Outlook / QQ，强调隐私与自托管。
 
 [![CI](https://github.com/theLucius7/Origami/actions/workflows/ci.yml/badge.svg)](https://github.com/theLucius7/Origami/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/theLucius7/Origami)](./LICENSE)
@@ -11,7 +13,21 @@
 
 ***
 
-## ✨ Features
+## 🌐 Documentation / 文档入口
+
+- **English docs:** <https://l7cp.de/Origami/>
+- **中文文档：** <https://l7cp.de/Origami/zh/>
+
+### Quick links / 快速入口
+
+| English | 中文 |
+|---|---|
+| [Overview](https://l7cp.de/Origami/) | [概览](https://l7cp.de/Origami/zh/) |
+| [Architecture](https://l7cp.de/Origami/architecture) | [架构说明](https://l7cp.de/Origami/zh/architecture) |
+| [Deployment](https://l7cp.de/Origami/deployment) | [部署指南](https://l7cp.de/Origami/zh/deployment) |
+| [Project Structure](https://l7cp.de/Origami/project-structure) | [项目结构](https://l7cp.de/Origami/zh/project-structure) |
+
+## ✨ Features / 主要特性
 
 - Unified inbox across multiple accounts, sorted by time
 - Gmail / Outlook OAuth + QQ IMAP account connection
@@ -24,7 +40,7 @@
 - Lazy body hydration: initial sync stores metadata first, then fetches full body/attachments on demand
 - Local sent-message history with attachment records
 
-## 🚫 Known Limitations
+## 🚫 Known Limitations / 当前限制
 
 - Local triage state is **Origami-only** and is not written back to Gmail / Outlook / QQ
 - QQ Mail is **read-only** for now; sending is not implemented
@@ -33,7 +49,7 @@
 - No remote draft sync yet
 - Inbox sync is focused on recent inbox mail, not full mailbox mirroring
 
-## 🚀 Quick Start
+## 🚀 Quick Start / 快速开始
 
 ### Environment setup
 
@@ -74,7 +90,7 @@ Recommended production stack:
 - **Attachment storage:** Cloudflare R2
 - **OAuth / provider APIs:** Google Gmail API, Microsoft Graph, QQ IMAP
 
-## ⚙️ Environment Variables
+## ⚙️ Environment Variables / 环境变量
 
 | Variable | Required | Description |
 |---|---:|---|
@@ -96,7 +112,7 @@ Recommended production stack:
 
 See also: [`docs/deployment.md`](./docs/deployment.md)
 
-## 🏗 Architecture
+## 🏗 Architecture / 架构
 
 Core runtime flow:
 
@@ -119,7 +135,7 @@ Vercel Cron
 
 See the full architecture write-up: [`docs/architecture.md`](./docs/architecture.md)
 
-## 🧪 Development
+## 🧪 Development / 开发
 
 | Command | What it does |
 |---|---|
@@ -145,7 +161,7 @@ npm run build
 npm run docs:build
 ```
 
-## 📦 Deployment
+## 📦 Deployment / 部署
 
 ### Vercel + Turso + R2
 
@@ -159,7 +175,7 @@ npm run docs:build
 
 Detailed deployment guide: [`docs/deployment.md`](./docs/deployment.md)
 
-## 🔒 Security
+## 🔒 Security / 安全
 
 - Provider credentials are encrypted with **AES-256-GCM** before being stored in Turso
 - Attachment binaries are stored outside the database in **Cloudflare R2**
@@ -168,6 +184,6 @@ Detailed deployment guide: [`docs/deployment.md`](./docs/deployment.md)
 - Cron sync is protected with `CRON_SECRET`
 - `npm run audit:prod` currently reports **0 production vulnerabilities**
 
-## 📄 License
+## 📄 License / 许可证
 
 MIT — see [LICENSE](./LICENSE)

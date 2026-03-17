@@ -21,8 +21,10 @@ function normalizeScopes(scopes?: string[] | string): string[] {
   return [...new Set(list.map((scope) => scope.trim().toLowerCase()).filter(Boolean))];
 }
 
+const OUTLOOK_REQUIRED_SEND_SCOPE = "mail.send";
+
 function hasOutlookSendScope(scopes?: string[]): boolean {
-  return normalizeScopes(scopes).includes(getOutlookProviderConfig().requiredSendScope);
+  return normalizeScopes(scopes).includes(OUTLOOK_REQUIRED_SEND_SCOPE);
 }
 
 export function getOutlookAuthUrl(): string {

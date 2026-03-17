@@ -1,97 +1,70 @@
-import { ImapFlow } from "imapflow";
-import { simpleParser } from "mailparser";
-import type { EmailProvider, SyncResult, SyncedEmail, SyncedAttachment } from "./types";
+import type { EmailProvider, SendMailParams, SendMailResult, SyncOptions, SyncResult, SyncedEmail } from "./types";
+import { resolveImapSmtpConfigFromAccount } from "./imap-smtp/account-config";
+import { ImapSmtpProvider } from "./imap-smtp/provider";
 
 interface QQCredentials {
   email: string;
-  authCode: string; // QQ 邮箱授权码
+  authCode: string;
 }
 
 export class QQProvider implements EmailProvider {
-  private creds: QQCredentials;
+  private delegate: ImapSmtpProvider;
 
   constructor(creds: QQCredentials) {
-    this.creds = creds;
+    this.delegate = new ImapSmtpProvider(
+      resolveImapSmtpConfigFromAccount(
+        {
+          id: "qq-provider-runtime",
+          provider: "qq",
+          email: creds.email,
+          displayName: creds.email,
+          credentials: "",
+          oauthAppId: null,
+          presetKey: "qq",
+          authUser: creds.email,
+          imapHost: null,
+          imapPort: null,
+          imapSecure: 1,
+          smtpHost: null,
+          smtpPort: null,
+          smtpSecure: 1,
+          syncCursor: null,
+          syncReadBack: 0,
+          syncStarBack: 0,
+          initialFetchLimit: 200,
+          lastSyncedAt: null,
+          createdAt: 0,
+        },
+        {
+          email: creds.email,
+          authCode: creds.authCode,
+          presetKey: "qq",
+        }
+      )
+    );
   }
 
-  async sync(cursor: string | null): Promise<SyncResult> {
-    const client = new ImapFlow({
-      host: "imap.qq.com",
-      port: 993,
-      secure: true,
-      auth: {
-        user: this.creds.email,
-        pass: this.creds.authCode,
-      },
-      logger: false,
-    });
+  getCapabilities() {
+    return this.delegate.getCapabilities();
+  }
 
-    const emails: SyncedEmail[] = [];
-    const lastUid = cursor ? parseInt(cursor, 10) : 0;
+  sendMail(params: SendMailParams): Promise<SendMailResult> {
+    return this.delegate.sendMail(params);
+  }
 
-    try {
-      await client.connect();
-      const lock = await client.getMailboxLock("INBOX");
+  syncEmails(cursor: string | null, options?: SyncOptions): Promise<SyncResult> {
+    return this.delegate.syncEmails(cursor, options);
+  }
 
-      try {
-        const uidRange = lastUid > 0 ? `${lastUid + 1}:*` : "1:*";
-        const messages = client.fetch(uidRange, {
-          uid: true,
-          envelope: true,
-          source: true,
-        });
+  fetchEmail(remoteId: string): Promise<SyncedEmail | null> {
+    return this.delegate.fetchEmail(remoteId);
+  }
 
-        let maxUid = lastUid;
-        let count = 0;
-        const MAX_EMAILS = 50;
+  markMessageRead(remoteId: string): Promise<void> {
+    return this.delegate.markMessageRead(remoteId);
+  }
 
-        for await (const msg of messages) {
-          if (msg.uid <= lastUid) continue;
-          if (count >= MAX_EMAILS) break;
-
-          if (!msg.source) continue;
-          const parsed = await simpleParser(msg.source);
-          const attachments: SyncedAttachment[] = (parsed.attachments ?? []).map(
-            (att) => ({
-              filename: att.filename ?? "untitled",
-              contentType: att.contentType ?? "application/octet-stream",
-              size: att.size,
-              content: att.content,
-            })
-          );
-
-          emails.push({
-            messageId: parsed.messageId ?? `qq-${msg.uid}`,
-            subject: parsed.subject ?? "(无主题)",
-            sender: parsed.from?.text ?? "",
-            recipients: (parsed.to
-              ? Array.isArray(parsed.to)
-                ? parsed.to.map((a) => a.text)
-                : [parsed.to.text]
-              : []),
-            snippet: (parsed.text ?? "").slice(0, 200),
-            bodyText: parsed.text ?? "",
-            bodyHtml: parsed.html || parsed.textAsHtml || "",
-            receivedAt: parsed.date
-              ? Math.floor(parsed.date.getTime() / 1000)
-              : Math.floor(Date.now() / 1000),
-            folder: "INBOX",
-            attachments,
-          });
-
-          if (msg.uid > maxUid) maxUid = msg.uid;
-          count++;
-        }
-
-        return {
-          emails,
-          newCursor: maxUid > lastUid ? String(maxUid) : cursor,
-        };
-      } finally {
-        lock.release();
-      }
-    } finally {
-      await client.logout();
-    }
+  setMessageStarred(remoteId: string, starred: boolean): Promise<void> {
+    return this.delegate.setMessageStarred(remoteId, starred);
   }
 }

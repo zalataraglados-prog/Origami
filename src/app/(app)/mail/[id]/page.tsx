@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { getEmailById, getEmailAttachments } from "@/actions/email";
-import { MailDetail } from "@/components/mail-detail";
+import { getHydratedEmailDetail } from "@/lib/services/email-service";
+import { MailDetail } from "@/components/inbox/mail-detail";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -11,12 +11,9 @@ interface PageProps {
 
 export default async function MailDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [email, attachmentsList] = await Promise.all([
-    getEmailById(id),
-    getEmailAttachments(id),
-  ]);
+  const detail = await getHydratedEmailDetail(id);
 
-  if (!email) notFound();
+  if (!detail) notFound();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -29,7 +26,7 @@ export default async function MailDetailPage({ params }: PageProps) {
         </Button>
       </div>
       <div className="flex-1">
-        <MailDetail email={email} attachments={attachmentsList} />
+        <MailDetail email={detail.email} attachments={detail.attachments} />
       </div>
     </div>
   );

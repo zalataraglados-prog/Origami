@@ -1,33 +1,81 @@
 import { google, type gmail_v1 } from "googleapis";
-import type { EmailProvider, SyncResult, SyncedEmail, SyncedAttachment } from "./types";
+import { DEFAULT_OAUTH_APP_ID } from "@/lib/oauth-apps.shared";
+import {
+  GMAIL_SEND_SCOPES,
+  getDefaultGmailOAuthAppSync,
+  resolveGmailOAuthApp,
+  type ResolvedGmailOAuthApp,
+} from "@/lib/oauth-apps";
+import { buildMimeMessage, encodeMimeMessageBase64Url } from "./mime";
+import type {
+  EmailProvider,
+  SendMailParams,
+  SendMailResult,
+  SyncOptions,
+  SyncResult,
+  SyncedAttachment,
+  SyncedEmail,
+} from "./types";
 
 interface GmailCredentials {
   accessToken: string;
   refreshToken: string;
+  scopes?: string[];
+  appId?: string;
+  oauthApp?: ResolvedGmailOAuthApp;
 }
 
-function getOAuth2Client() {
+export const GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
+
+function normalizeScopes(scopes?: string[] | string): string[] {
+  const list = Array.isArray(scopes) ? scopes : scopes?.split(/\s+/) ?? [];
+  return [...new Set(list.map((scope) => scope.trim()).filter(Boolean))];
+}
+
+export function hasGmailSendScope(scopes?: string[]): boolean {
+  const normalized = normalizeScopes(scopes);
+  return GMAIL_SEND_SCOPES.some((scope) => normalized.includes(scope));
+}
+
+export function hasGmailModifyScope(scopes?: string[]): boolean {
+  return normalizeScopes(scopes).includes(GMAIL_MODIFY_SCOPE);
+}
+
+function getOAuth2Client(config: ResolvedGmailOAuthApp) {
   return new google.auth.OAuth2(
-    process.env.GMAIL_CLIENT_ID,
-    process.env.GMAIL_CLIENT_SECRET,
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/oauth/gmail`
+    config.clientId,
+    config.clientSecret,
+    config.redirectUrl
   );
 }
 
-export function getGmailAuthUrl(): string {
-  const oauth2 = getOAuth2Client();
+function resolveSyncGmailOAuthApp(appId?: string, oauthApp?: ResolvedGmailOAuthApp) {
+  if (oauthApp) return oauthApp;
+  const normalizedAppId = appId?.trim() || DEFAULT_OAUTH_APP_ID;
+  if (normalizedAppId !== DEFAULT_OAUTH_APP_ID) {
+    throw new Error(`OAuth app \"${normalizedAppId}\" requires async resolution before constructing GmailProvider.`);
+  }
+  return getDefaultGmailOAuthAppSync();
+}
+
+export async function getGmailAuthUrl(state?: string, appId?: string): Promise<string> {
+  const oauthConfig = await resolveGmailOAuthApp(appId);
+  const oauth2 = getOAuth2Client(oauthConfig);
   return oauth2.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: [
-      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/gmail.send",
       "https://www.googleapis.com/auth/userinfo.email",
     ],
+    ...(state ? { state } : {}),
   });
 }
 
-export async function exchangeGmailCode(code: string) {
-  const oauth2 = getOAuth2Client();
+export async function exchangeGmailCode(code: string, appId?: string) {
+  const oauthConfig = await resolveGmailOAuthApp(appId);
+  const oauth2 = getOAuth2Client(oauthConfig);
   const { tokens } = await oauth2.getToken(code);
   oauth2.setCredentials(tokens);
 
@@ -38,175 +86,271 @@ export async function exchangeGmailCode(code: string) {
     email: profile.data.emailAddress!,
     accessToken: tokens.access_token!,
     refreshToken: tokens.refresh_token!,
+    scopes: normalizeScopes(tokens.scope),
+    appId: oauthConfig.appId,
   };
 }
 
 export class GmailProvider implements EmailProvider {
   private gmail: gmail_v1.Gmail;
   private oauth2: InstanceType<typeof google.auth.OAuth2>;
+  private creds: GmailCredentials;
 
   constructor(creds: GmailCredentials) {
-    this.oauth2 = getOAuth2Client();
+    const oauthApp = resolveSyncGmailOAuthApp(creds.appId, creds.oauthApp);
+    this.creds = {
+      ...creds,
+      scopes: normalizeScopes(creds.scopes),
+      appId: oauthApp.appId,
+      oauthApp,
+    };
+    this.oauth2 = getOAuth2Client(oauthApp);
     this.oauth2.setCredentials({
       access_token: creds.accessToken,
       refresh_token: creds.refreshToken,
     });
-    this.oauth2.on("tokens", () => {
-      // Token refresh is handled transparently by the library
+    this.oauth2.on("tokens", (tokens) => {
+      if (tokens.access_token) {
+        this.creds.accessToken = tokens.access_token;
+      }
+      if (tokens.refresh_token) {
+        this.creds.refreshToken = tokens.refresh_token;
+      }
+      if (tokens.scope) {
+        this.creds.scopes = normalizeScopes(tokens.scope);
+      }
     });
     this.gmail = google.gmail({ version: "v1", auth: this.oauth2 });
   }
 
-  getUpdatedTokens(): { accessToken: string; refreshToken: string } {
+  getUpdatedTokens(): { accessToken: string; refreshToken: string; scopes: string[] } {
     const creds = this.oauth2.credentials;
     return {
-      accessToken: creds.access_token ?? "",
-      refreshToken: creds.refresh_token ?? "",
+      accessToken: creds.access_token ?? this.creds.accessToken,
+      refreshToken: creds.refresh_token ?? this.creds.refreshToken,
+      scopes: this.creds.scopes ?? [],
     };
   }
 
-  async sync(cursor: string | null): Promise<SyncResult> {
-    if (cursor) {
-      return this.incrementalSync(cursor);
+  getCapabilities() {
+    return {
+      canSend: hasGmailSendScope(this.creds.scopes),
+    };
+  }
+
+  async sendMail(params: SendMailParams): Promise<SendMailResult> {
+    if (params.to.length === 0) {
+      return {
+        ok: false,
+        errorCode: "VALIDATION",
+        errorMessage: "至少需要一个收件人。",
+      };
     }
-    return this.fullSync();
-  }
 
-  private async fullSync(): Promise<SyncResult> {
-    const listRes = await this.gmail.users.messages.list({
-      userId: "me",
-      maxResults: 50,
-      labelIds: ["INBOX"],
-    });
+    if (!this.getCapabilities().canSend) {
+      return {
+        ok: false,
+        errorCode: "INSUFFICIENT_SCOPE",
+        errorMessage: "当前 Gmail 账号没有发送权限，请重新授权并包含 gmail.send/gmail.modify。",
+      };
+    }
 
-    const messageIds = listRes.data.messages ?? [];
-    const emails = await this.fetchMessages(messageIds.map((m) => m.id!));
-
-    const profile = await this.gmail.users.getProfile({ userId: "me" });
-    const historyId = profile.data.historyId ?? null;
-
-    return { emails, newCursor: historyId };
-  }
-
-  private async incrementalSync(historyId: string): Promise<SyncResult> {
     try {
-      const historyRes = await this.gmail.users.history.list({
+      const mime = buildMimeMessage(params);
+      const raw = encodeMimeMessageBase64Url(mime);
+      const response = await this.gmail.users.messages.send({
         userId: "me",
-        startHistoryId: historyId,
-        historyTypes: ["messageAdded"],
-        labelId: "INBOX",
+        requestBody: { raw },
       });
 
-      const newHistoryId = historyRes.data.historyId ?? historyId;
-      const history = historyRes.data.history ?? [];
-      const addedIds = new Set<string>();
+      return {
+        ok: true,
+        providerMessageId: response.data.id ?? null,
+        sentAt: Math.floor(Date.now() / 1000),
+      };
+    } catch (error: unknown) {
+      const gmailError = error as {
+        code?: number;
+        status?: number;
+        message?: string;
+        response?: { data?: unknown };
+      };
+      const status = gmailError.status ?? gmailError.code;
+      const providerRawError = JSON.stringify(gmailError.response?.data ?? gmailError.message ?? error);
 
-      for (const h of history) {
-        for (const added of h.messagesAdded ?? []) {
-          if (added.message?.id) addedIds.add(added.message.id);
-        }
+      if (status === 401) {
+        return {
+          ok: false,
+          errorCode: "AUTH_EXPIRED",
+          errorMessage: "Gmail 登录已过期，请重新授权。",
+          providerRawError,
+        };
       }
 
-      if (addedIds.size === 0) {
-        return { emails: [], newCursor: newHistoryId };
+      if (status === 403) {
+        return {
+          ok: false,
+          errorCode: "INSUFFICIENT_SCOPE",
+          errorMessage: "Gmail 账号缺少发送权限或当前被策略限制。",
+          providerRawError,
+        };
       }
 
-      const emails = await this.fetchMessages([...addedIds]);
-      return { emails, newCursor: newHistoryId };
-    } catch (err: unknown) {
-      const error = err as { code?: number };
-      if (error.code === 404) {
-        return this.fullSync();
+      if (status === 429) {
+        return {
+          ok: false,
+          errorCode: "RATE_LIMITED",
+          errorMessage: "Gmail 当前触发了发送频率限制，请稍后重试。",
+          providerRawError,
+        };
       }
-      throw err;
+
+      return {
+        ok: false,
+        errorCode: "PROVIDER_ERROR",
+        errorMessage: gmailError.message ?? "Gmail 发信失败。",
+        providerRawError,
+      };
     }
   }
 
-  private async fetchMessages(ids: string[]): Promise<SyncedEmail[]> {
-    const results: SyncedEmail[] = [];
+  async markMessageRead(remoteId: string): Promise<void> {
+    await this.gmail.users.messages.modify({
+      userId: "me",
+      id: remoteId,
+      requestBody: {
+        removeLabelIds: ["UNREAD"],
+      },
+    });
+  }
 
+  async setMessageStarred(remoteId: string, starred: boolean): Promise<void> {
+    await this.gmail.users.messages.modify({
+      userId: "me",
+      id: remoteId,
+      requestBody: starred
+        ? { addLabelIds: ["STARRED"] }
+        : { removeLabelIds: ["STARRED"] },
+    });
+  }
+
+  async syncEmails(cursor: string | null, options: SyncOptions = {}): Promise<SyncResult> {
+    if (cursor) {
+      return this.incrementalSync(cursor, options);
+    }
+    return this.fullSync(options);
+  }
+
+  async fetchEmail(remoteId: string): Promise<SyncedEmail | null> {
+    const msg = await this.gmail.users.messages.get({
+      userId: "me",
+      id: remoteId,
+      format: "full",
+    });
+
+    if (!msg.data.id) return null;
+    return this.mapMessage(msg.data, false);
+  }
+
+  private async incrementalSync(cursor: string, options: SyncOptions): Promise<SyncResult> {
+    const historyRes = await this.gmail.users.history.list({
+      userId: "me",
+      startHistoryId: cursor,
+      historyTypes: ["messageAdded"],
+      maxResults: options.limit ?? 50,
+    });
+
+    const history = historyRes.data.history ?? [];
+    const ids = history
+      .flatMap((h) => (h.messagesAdded ?? []).map((m) => m.message?.id))
+      .filter(Boolean) as string[];
+
+    const emails: SyncedEmail[] = [];
     for (const id of ids) {
       const msg = await this.gmail.users.messages.get({
         userId: "me",
         id,
-        format: "full",
+        format: options.metadataOnly ? "metadata" : "full",
       });
-
-      const headers = msg.data.payload?.headers ?? [];
-      const getHeader = (name: string) =>
-        headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
-
-      const attachments: SyncedAttachment[] = [];
-      const bodyHtml = this.extractBody(msg.data.payload, "text/html");
-      const bodyText = this.extractBody(msg.data.payload, "text/plain");
-
-      if (msg.data.payload?.parts) {
-        for (const part of this.flattenParts(msg.data.payload.parts)) {
-          if (part.filename && part.body?.attachmentId) {
-            const att = await this.gmail.users.messages.attachments.get({
-              userId: "me",
-              messageId: id,
-              id: part.body.attachmentId,
-            });
-            if (att.data.data) {
-              attachments.push({
-                filename: part.filename,
-                contentType: part.mimeType ?? "application/octet-stream",
-                size: att.data.size ?? 0,
-                content: Buffer.from(att.data.data, "base64url"),
-              });
-            }
-          }
-        }
-      }
-
-      const receivedDate = msg.data.internalDate
-        ? Math.floor(parseInt(msg.data.internalDate) / 1000)
-        : Math.floor(Date.now() / 1000);
-
-      results.push({
-        messageId: getHeader("Message-ID") || `gmail-${id}`,
-        subject: getHeader("Subject") || "(无主题)",
-        sender: getHeader("From"),
-        recipients: getHeader("To")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        snippet: msg.data.snippet ?? "",
-        bodyText,
-        bodyHtml,
-        receivedAt: receivedDate,
-        folder: "INBOX",
-        attachments,
-      });
+      emails.push(this.mapMessage(msg.data, Boolean(options.metadataOnly)));
     }
 
-    return results;
+    return {
+      emails,
+      newCursor: historyRes.data.historyId ?? cursor,
+    };
+  }
+
+  private async fullSync(options: SyncOptions): Promise<SyncResult> {
+    const listRes = await this.gmail.users.messages.list({
+      userId: "me",
+      maxResults: options.limit ?? 50,
+      q: "in:inbox",
+    });
+    const messages = listRes.data.messages ?? [];
+    const emails: SyncedEmail[] = [];
+
+    for (const m of messages) {
+      const msg = await this.gmail.users.messages.get({
+        userId: "me",
+        id: m.id!,
+        format: options.metadataOnly ? "metadata" : "full",
+      });
+      emails.push(this.mapMessage(msg.data, Boolean(options.metadataOnly)));
+    }
+
+    const profile = await this.gmail.users.getProfile({ userId: "me" });
+    return { emails, newCursor: profile.data.historyId ?? null };
+  }
+
+  private mapMessage(msg: gmail_v1.Schema$Message, metadataOnly: boolean): SyncedEmail {
+    const headers = Object.fromEntries(
+      (msg.payload?.headers ?? []).map((h) => [h.name?.toLowerCase() ?? "", h.value ?? ""])
+    );
+    const parts = msg.payload?.parts ?? [];
+    const attachments: SyncedAttachment[] = [];
+
+    for (const p of parts) {
+      if (p.filename && p.body?.attachmentId) {
+        attachments.push({
+          filename: p.filename,
+          contentType: p.mimeType ?? "application/octet-stream",
+          size: p.body.size ?? 0,
+          content: Buffer.alloc(0),
+        });
+      }
+    }
+
+    const bodyData = metadataOnly
+      ? undefined
+      : this.extractBody(msg.payload, "text/plain") || this.extractBody(msg.payload, "text/html");
+    const htmlData = metadataOnly ? undefined : this.extractBody(msg.payload, "text/html");
+
+    return {
+      remoteId: msg.id!,
+      messageId: headers["message-id"] ?? msg.id!,
+      subject: headers.subject ?? "(无主题)",
+      sender: headers.from ?? "",
+      recipients: headers.to ? headers.to.split(/,\s*/) : [],
+      snippet: msg.snippet ?? "",
+      bodyText: bodyData ? Buffer.from(bodyData, "base64").toString("utf8") : null,
+      bodyHtml: htmlData ? Buffer.from(htmlData, "base64").toString("utf8") : null,
+      receivedAt: Number(headers.date ? Date.parse(headers.date) / 1000 : Date.now() / 1000),
+      folder: "INBOX",
+      attachments,
+    };
   }
 
   private extractBody(
     payload: gmail_v1.Schema$MessagePart | undefined,
     mimeType: string
-  ): string {
-    if (!payload) return "";
-    if (payload.mimeType === mimeType && payload.body?.data) {
-      return Buffer.from(payload.body.data, "base64url").toString("utf-8");
+  ): string | null {
+    if (!payload) return null;
+    if (payload.mimeType === mimeType && payload.body?.data) return payload.body.data;
+    for (const p of payload.parts ?? []) {
+      const found = this.extractBody(p, mimeType);
+      if (found) return found;
     }
-    for (const part of payload.parts ?? []) {
-      const result = this.extractBody(part, mimeType);
-      if (result) return result;
-    }
-    return "";
-  }
-
-  private flattenParts(
-    parts: gmail_v1.Schema$MessagePart[]
-  ): gmail_v1.Schema$MessagePart[] {
-    const result: gmail_v1.Schema$MessagePart[] = [];
-    for (const part of parts) {
-      result.push(part);
-      if (part.parts) result.push(...this.flattenParts(part.parts));
-    }
-    return result;
+    return null;
   }
 }

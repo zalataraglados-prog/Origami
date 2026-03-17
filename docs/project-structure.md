@@ -14,7 +14,7 @@ Origami uses a **hybrid Next.js App Router structure**:
 .
 ├── docs/                # VitePress docs site
 ├── drizzle/             # historical SQL migrations + journal
-├── scripts/             # helper scripts such as db bootstrap / benchmark seeding
+├── scripts/             # helper scripts, grouped by purpose
 ├── src/                 # application source
 ├── .env.example         # environment template
 ├── drizzle.config.ts    # Drizzle config
@@ -29,6 +29,7 @@ Origami uses a **hybrid Next.js App Router structure**:
 
 - Most root files are standard Next.js / Vercel / TypeScript config files, not project clutter.
 - `drizzle/` keeps the historical migration chain for upgrades, but for a brand-new database the recommended shortcut is `npm run db:setup`.
+- `scripts/` is grouped by purpose (`db/`, `bench/`) so operational helpers do not sprawl at the repo root.
 - `.eslintrc.json` is no longer used; the project uses `eslint.config.mjs`.
 
 ## Top-level source layout

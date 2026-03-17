@@ -11,6 +11,7 @@ import { getMailboxPreset } from "@/lib/providers/imap-smtp/presets";
 import { getAccountWriteBackAvailability } from "@/lib/providers/writeBack";
 import { getAccountRecordById, listAccounts } from "@/lib/queries/accounts";
 import { deleteAttachment } from "@/lib/r2";
+import { revalidateAccountPages } from "@/lib/revalidate";
 
 export async function getAccounts() {
   return listAccounts();
@@ -199,6 +200,7 @@ export async function addImapSmtpAccount(input: AddImapSmtpAccountInput) {
       initialFetchLimit,
     });
 
+    revalidateAccountPages();
     return id;
   });
 }
@@ -245,6 +247,7 @@ export async function updateMailboxAccount(input: UpdateMailboxAccountInput) {
     }
 
     await db.update(accounts).set(patch).where(eq(accounts.id, account.id));
+    revalidateAccountPages();
   });
 }
 
@@ -283,6 +286,7 @@ export async function addQQAccount(
       initialFetchLimit,
     });
 
+    revalidateAccountPages();
     return id;
   });
 }
@@ -319,6 +323,7 @@ export async function addOAuthAccount(
         set: { credentials: creds, displayName, oauthAppId: resolvedOauthAppId },
       });
 
+    revalidateAccountPages();
     return id;
   });
 }
@@ -334,6 +339,8 @@ export async function updateAccountInitialFetchLimit(
       .update(accounts)
       .set({ initialFetchLimit })
       .where(eq(accounts.id, id));
+
+    revalidateAccountPages();
   });
 }
 
@@ -373,6 +380,7 @@ export async function updateAccountWriteBackSettings(
     if (Object.keys(patch).length === 0) return { updated: false, skipped: true };
 
     await db.update(accounts).set(patch).where(eq(accounts.id, id));
+    revalidateAccountPages();
     return { updated: true, skipped: false };
   });
 }
@@ -395,6 +403,10 @@ export async function updateAllAccountsWriteBackSettings(settings: {
 
       await db.update(accounts).set(patch).where(eq(accounts.id, account.id));
       updated += 1;
+    }
+
+    if (updated > 0) {
+      revalidateAccountPages();
     }
 
     return { updated, skipped };
@@ -427,5 +439,6 @@ export async function removeAccount(id: string) {
     }
 
     await db.delete(accounts).where(eq(accounts.id, id));
+    revalidateAccountPages();
   });
 }

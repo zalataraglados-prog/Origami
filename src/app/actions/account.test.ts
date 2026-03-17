@@ -7,6 +7,7 @@ const updateMock = vi.fn(() => ({ set: updateSetMock }));
 const getAccountRecordByIdMock = vi.fn();
 const listAccountsMock = vi.fn();
 const getAccountWriteBackAvailabilityMock = vi.fn();
+const revalidateAccountPagesMock = vi.fn();
 
 vi.mock("@/lib/actions", () => ({
   runLoggedAction: vi.fn(async (_name: string, fn: () => Promise<unknown>) => fn()),
@@ -53,6 +54,10 @@ vi.mock("@/lib/r2", () => ({
   deleteAttachment: vi.fn(),
 }));
 
+vi.mock("@/lib/revalidate", () => ({
+  revalidateAccountPages: revalidateAccountPagesMock,
+}));
+
 vi.mock("nanoid", () => ({ nanoid: vi.fn(() => "id") }));
 
 describe("account write-back settings actions", () => {
@@ -92,6 +97,7 @@ describe("account write-back settings actions", () => {
     expect(result).toEqual({ updated: true, skipped: false });
     expect(updateMock).toHaveBeenCalledTimes(1);
     expect(updateSetMock).toHaveBeenCalledWith({ syncReadBack: 0 });
+    expect(revalidateAccountPagesMock).toHaveBeenCalledTimes(1);
   });
 
   it("globally enables write-back only for eligible accounts", async () => {
@@ -127,5 +133,6 @@ describe("account write-back settings actions", () => {
     expect(updateMock).toHaveBeenCalledTimes(2);
     expect(updateSetMock).toHaveBeenNthCalledWith(1, { syncReadBack: 1, syncStarBack: 1 });
     expect(updateSetMock).toHaveBeenNthCalledWith(2, { syncReadBack: 1 });
+    expect(revalidateAccountPagesMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -48,15 +48,9 @@ cp .env.example .env
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-分别用于：
-
-- `ENCRYPTION_KEY`
-- `AUTH_SECRET`
-- `CRON_SECRET`
+把生成的 64 位十六进制字符串先填入 `ENCRYPTION_KEY`。如果你打算单独设置 `AUTH_SECRET` 或 `CRON_SECRET`，可以再各自生成一份新的随机值。
 
 将 `.env` 至少填写为：
 

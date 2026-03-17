@@ -78,7 +78,7 @@ http://localhost:3000/api/oauth/outlook
 ## 安装与启动
 
 ```bash
-cp .env.example .env
+cp .env.local.example .env
 npm install
 npm run db:setup
 npm run dev

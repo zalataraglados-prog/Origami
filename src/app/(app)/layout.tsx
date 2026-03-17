@@ -1,5 +1,5 @@
 import { Sidebar } from "@/components/layout/sidebar";
-import { listSendCapableAccounts } from "@/lib/account-providers";
+import { canAccountSend } from "@/lib/account-providers";
 import { listAccounts } from "@/lib/queries/accounts";
 import { countUnreadEmails } from "@/lib/queries/emails";
 
@@ -10,18 +10,19 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [accounts, unreadCount, sendCapableAccounts] = await Promise.all([
+  const [accounts, unreadCount] = await Promise.all([
     listAccounts(),
     countUnreadEmails(),
-    listSendCapableAccounts(),
   ]);
+
+  const hasSendAccounts = accounts.some(canAccountSend);
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
         accounts={accounts}
         unreadCount={unreadCount}
-        hasSendAccounts={sendCapableAccounts.length > 0}
+        hasSendAccounts={hasSendAccounts}
       />
       <main className="flex flex-1 overflow-hidden">{children}</main>
     </div>

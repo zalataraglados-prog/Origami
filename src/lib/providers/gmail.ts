@@ -32,7 +32,7 @@ function normalizeScopes(scopes?: string[] | string): string[] {
   return [...new Set(list.map((scope) => scope.trim()).filter(Boolean))];
 }
 
-function hasGmailSendScope(scopes?: string[]): boolean {
+export function hasGmailSendScope(scopes?: string[]): boolean {
   const normalized = normalizeScopes(scopes);
   return GMAIL_SEND_SCOPES.some((scope) => normalized.includes(scope));
 }

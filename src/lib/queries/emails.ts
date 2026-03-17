@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { accounts, attachments, emails, type EmailListItem } from "@/lib/db/schema";
 import {
@@ -206,7 +207,7 @@ export async function listEmailAttachments(emailId: string) {
   return db.select().from(attachments).where(eq(attachments.emailId, emailId));
 }
 
-export async function countUnreadEmails(accountId?: string) {
+export const countUnreadEmails = cache(async function countUnreadEmails(accountId?: string) {
   const now = Math.floor(Date.now() / 1000);
   const conditions: SQL<unknown>[] = [
     eq(emails.isRead, 0),
@@ -222,4 +223,4 @@ export async function countUnreadEmails(accountId?: string) {
     .where(and(...conditions));
 
   return result[0]?.count ?? 0;
-}
+});

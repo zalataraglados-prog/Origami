@@ -31,7 +31,7 @@ function normalizeScopes(scopes?: string[] | string): string[] {
 const OUTLOOK_REQUIRED_SEND_SCOPE = "mail.send";
 export const OUTLOOK_REQUIRED_WRITEBACK_SCOPE = "mail.readwrite";
 
-function hasOutlookSendScope(scopes?: string[]): boolean {
+export function hasOutlookSendScope(scopes?: string[]): boolean {
   return normalizeScopes(scopes).includes(OUTLOOK_REQUIRED_SEND_SCOPE);
 }
 

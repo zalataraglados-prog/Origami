@@ -1,7 +1,10 @@
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 import { accounts, type Account } from "@/lib/db/schema";
+import { getAccountRecordById, listAccounts } from "@/lib/queries/accounts";
 import { createEmailProvider, getUpdatedProviderCredentials } from "@/lib/providers/factory";
+import { hasGmailSendScope } from "@/lib/providers/gmail";
+import { hasOutlookSendScope } from "@/lib/providers/outlook";
 import type { EmailProvider } from "@/lib/providers/types";
 import { eq } from "drizzle-orm";
 
@@ -17,6 +20,44 @@ export function parseAccountCredentials(account: Account) {
   return JSON.parse(decrypt(account.credentials)) as Record<string, unknown>;
 }
 
+export function canAccountSendFromCredentials(
+  provider: Account["provider"],
+  credentials: Record<string, unknown>
+): boolean {
+  switch (provider) {
+    case "gmail":
+      return hasGmailSendScope(credentials.scopes as string[] | undefined);
+    case "outlook":
+      return hasOutlookSendScope(credentials.scopes as string[] | undefined);
+    case "qq":
+    case "imap_smtp":
+      return true;
+    default:
+      return false;
+  }
+}
+
+export function canAccountSend(account: Account): boolean {
+  try {
+    return canAccountSendFromCredentials(account.provider, parseAccountCredentials(account));
+  } catch (error) {
+    console.warn("Failed to inspect provider capabilities:", account.email, error);
+    return false;
+  }
+}
+
+function toSendCapableAccountSummary(account: Account): SendCapableAccountSummary {
+  return {
+    id: account.id,
+    provider: account.provider,
+    email: account.email,
+    displayName: account.displayName ?? account.email,
+    fromAddress: account.displayName
+      ? `${account.displayName} <${account.email}>`
+      : account.email,
+  };
+}
+
 export async function createProviderForAccount(account: Account): Promise<EmailProvider> {
   return createEmailProvider(account, parseAccountCredentials(account));
 }
@@ -25,8 +66,7 @@ export async function getAccountWithProvider(accountId: string): Promise<{
   account: Account;
   provider: EmailProvider;
 } | null> {
-  const rows = await db.select().from(accounts).where(eq(accounts.id, accountId));
-  const account = rows[0] ?? null;
+  const account = await getAccountRecordById(accountId);
   if (!account) return null;
 
   return {
@@ -43,27 +83,6 @@ export async function persistProviderCredentialsIfNeeded(account: Account, provi
 }
 
 export async function listSendCapableAccounts(): Promise<SendCapableAccountSummary[]> {
-  const rows = await db.select().from(accounts).orderBy(accounts.createdAt);
-  const result: SendCapableAccountSummary[] = [];
-
-  for (const account of rows) {
-    try {
-      const provider = await createProviderForAccount(account);
-      if (!provider.getCapabilities().canSend) continue;
-
-      result.push({
-        id: account.id,
-        provider: account.provider,
-        email: account.email,
-        displayName: account.displayName ?? account.email,
-        fromAddress: account.displayName
-          ? `${account.displayName} <${account.email}>`
-          : account.email,
-      });
-    } catch (error) {
-      console.warn("Failed to inspect provider capabilities:", account.email, error);
-    }
-  }
-
-  return result;
+  const rows = await listAccounts();
+  return rows.filter(canAccountSend).map(toSendCapableAccountSummary);
 }

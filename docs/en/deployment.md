@@ -61,6 +61,79 @@ Alternative commands:
 - `npm run db:migrate`
 - `npm run db:push`
 
+## GitHub auth setup
+
+Create a GitHub OAuth App for signing in to Origami itself.
+
+### What to put into the GitHub OAuth App
+
+In GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**:
+
+- **Application name**: `Origami Local` / `Origami Production`
+- **Homepage URL**: your app URL
+- **Authorization callback URL**: `<APP_URL>/api/auth/github/callback`
+
+Examples:
+
+- Local
+  - Homepage URL: `http://localhost:3000`
+  - Callback URL: `http://localhost:3000/api/auth/github/callback`
+- Production
+  - Homepage URL: `https://mail.example.com`
+  - Callback URL: `https://mail.example.com/api/auth/github/callback`
+
+Then copy the generated values into:
+
+```txt
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+### Recommended GitHub auth patterns
+
+#### Pattern A: one OAuth App for local development
+
+Good for quick local testing:
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+#### Pattern B: separate local and production apps (recommended)
+
+Use different GitHub OAuth Apps for:
+
+- local: `http://localhost:3000/api/auth/github/callback`
+- production: `https://your-domain/api/auth/github/callback`
+
+This keeps callback URLs and secret rotation cleaner.
+
+#### Pattern C: public single-user deployment with `GITHUB_ALLOWED_LOGIN`
+
+If the app is reachable from the public internet, set:
+
+```txt
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+This prevents an unexpected user from claiming the installation first.
+
+### First-owner binding notes
+
+- The first successful allowed login becomes the installation owner
+- Later logins are checked against the stored GitHub user id
+- Renaming your GitHub login does not break access if it is still the same account
+
+### Common pitfalls
+
+- `NEXT_PUBLIC_APP_URL` must match the URL you configured in GitHub
+- the callback URL must end with `/api/auth/github/callback`
+- if you change domains, update both GitHub and your environment variables
+- if you want auth signing independent from credential encryption, set `AUTH_SECRET`
+
 ## OAuth setup
 
 ### Gmail scopes

@@ -75,15 +75,91 @@ npm run db:setup
 
 你需要先创建一个 GitHub OAuth App，用于登录到 Origami 本身。
 
-回调地址：
+### GitHub OAuth App 里要填什么
 
-- 本地：`http://localhost:3000/api/auth/github/callback`
-- 生产：`https://your-domain/api/auth/github/callback`
+在 GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App** 中，至少填写：
 
-推荐：
+- **Application name**：例如 `Origami Local` / `Origami Production`
+- **Homepage URL**：你的应用公开地址
+- **Authorization callback URL**：`<APP_URL>/api/auth/github/callback`
 
-- 单用户公开部署时，设置 `GITHUB_ALLOWED_LOGIN`
-- 首次访问会进入 `/setup`，首个满足条件的 GitHub 用户会绑定为实例 owner
+对应示例：
+
+- 本地：
+  - Homepage URL：`http://localhost:3000`
+  - Callback URL：`http://localhost:3000/api/auth/github/callback`
+- 生产：
+  - Homepage URL：`https://mail.example.com`
+  - Callback URL：`https://mail.example.com/api/auth/github/callback`
+
+创建后，点击 **Generate a new client secret**，把值填到：
+
+```txt
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+### 推荐的几种 GitHub Auth 配置方式
+
+#### 方案 A：本地开发单独一个 OAuth App（最省事）
+
+适合只在本机调试：
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+优点：
+
+- 配置最少
+- callback URL 很明确
+- 不容易把生产配置弄坏
+
+#### 方案 B：本地 / 生产各自一个 OAuth App（推荐）
+
+推荐把环境拆开：
+
+- `Origami Local` → `http://localhost:3000/api/auth/github/callback`
+- `Origami Production` → `https://your-domain/api/auth/github/callback`
+
+优点：
+
+- callback URL 不串
+- 更容易轮换 secret
+- 生产排障更清晰
+
+#### 方案 C：公网单用户实例 + `GITHUB_ALLOWED_LOGIN`（强烈推荐）
+
+如果你的实例暴露在公网，建议显式设置：
+
+```txt
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+这样即使别人提前打开了 `/login`，也不能完成 owner 绑定。
+
+#### 方案 D：不设置 `GITHUB_ALLOWED_LOGIN`（仅适合完全私有环境）
+
+如果你的服务只在内网、Tailscale、SSH 隧道后面，且你确定不会被其他人先访问，也可以不设置 `GITHUB_ALLOWED_LOGIN`。
+
+但对公网部署来说，这不是推荐方案。
+
+### 首次绑定会发生什么
+
+- 第一次成功登录且满足限制条件的 GitHub 用户，会在数据库里绑定为实例 owner
+- 之后登录校验的是 **GitHub user id**，不是用户名文本
+- 即使你 later 改了 GitHub login，只要是同一个账号，仍然可以登录
+
+### 常见坑
+
+- `NEXT_PUBLIC_APP_URL` 必须和你在 GitHub OAuth App 里填写的地址一致
+- callback URL 必须精确到 `/api/auth/github/callback`
+- 改了域名后，记得同时更新 GitHub OAuth App 和环境变量
+- 如果你误绑了 owner，通常需要清理 `app_installation` 记录后重新初始化
+- 如果想让 session 与加密密钥解耦，建议额外设置 `AUTH_SECRET`
 
 ## 第 4 步：配置邮箱 OAuth
 

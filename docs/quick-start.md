@@ -55,6 +55,33 @@ AUTH_SECRET=...
 CRON_SECRET=...
 ```
 
+### GitHub OAuth App 最小配置
+
+如果你还没创建 GitHub OAuth App，最快可以这样配：
+
+1. 打开 GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
+2. 填写：
+   - **Application name**：`Origami Local`（本地）或 `Origami Prod`（生产）
+   - **Homepage URL**：你的应用地址，例如 `http://localhost:3000` 或 `https://mail.example.com`
+   - **Authorization callback URL**：`<你的应用地址>/api/auth/github/callback`
+3. 创建后点 **Generate a new client secret**
+4. 把得到的值填进：
+   - `GITHUB_CLIENT_ID`
+   - `GITHUB_CLIENT_SECRET`
+5. 如果这是你的个人实例，建议同时设置：
+   - `GITHUB_ALLOWED_LOGIN=你的 GitHub 用户名`
+
+示例（本地开发）：
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=Iv1.xxxxxxxxxxxxx
+GITHUB_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+> 推荐把**本地开发**和**生产环境**分成两个 GitHub OAuth App。这样 callback URL 不会互相干扰，也更容易排查问题。
+
 ### 如果你希望开箱即用 Gmail / Outlook OAuth
 
 再补：

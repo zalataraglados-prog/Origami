@@ -53,6 +53,77 @@ npm run db:setup
 - `npm run db:migrate`
 - `npm run db:push`
 
+## GitHub Auth 設定
+
+Origami 自体へのログイン用に、GitHub OAuth App を作成します。
+
+### GitHub OAuth App に入れる値
+
+GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App** で、次を設定します。
+
+- **Application name**: `Origami Local` / `Origami Production`
+- **Homepage URL**: アプリの URL
+- **Authorization callback URL**: `<APP_URL>/api/auth/github/callback`
+
+例：
+
+- ローカル
+  - Homepage URL: `http://localhost:3000`
+  - Callback URL: `http://localhost:3000/api/auth/github/callback`
+- 本番
+  - Homepage URL: `https://mail.example.com`
+  - Callback URL: `https://mail.example.com/api/auth/github/callback`
+
+作成後、生成された値を次へ入れます。
+
+```txt
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+### おすすめの GitHub Auth 構成
+
+#### パターン A: ローカル開発専用の OAuth App
+
+素早く試すだけならこれで十分です。
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+#### パターン B: ローカル / 本番で OAuth App を分ける（推奨）
+
+- local: `http://localhost:3000/api/auth/github/callback`
+- production: `https://your-domain/api/auth/github/callback`
+
+callback URL の衝突を避けやすく、secret の管理も楽です。
+
+#### パターン C: 公開単一ユーザー運用 + `GITHUB_ALLOWED_LOGIN`
+
+公開 URL で運用するなら、次を設定するのがおすすめです。
+
+```txt
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+これで想定外のユーザーが先に owner を claim するのを防ぎやすくなります。
+
+### 初回 owner バインドについて
+
+- 最初に条件を満たしてログインした GitHub ユーザーが owner になります
+- 以後は GitHub の user id で照合します
+- login 名を変更しても、同じ GitHub アカウントなら通常は継続ログインできます
+
+### よくあるハマりどころ
+
+- `NEXT_PUBLIC_APP_URL` と GitHub 側の URL は一致させる
+- callback URL は `/api/auth/github/callback` まで正確に書く
+- ドメイン変更時は GitHub 側と env の両方を更新する
+- auth 署名を暗号化キーと分離したいなら `AUTH_SECRET` を設定する
+
 ## OAuth 設定
 
 ### Gmail

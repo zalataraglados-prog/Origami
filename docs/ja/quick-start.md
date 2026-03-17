@@ -30,6 +30,30 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - **Storage:** `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`
 - **Optional OAuth defaults:** `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `OUTLOOK_CLIENT_ID`, `OUTLOOK_CLIENT_SECRET`
 
+## GitHub OAuth App の最小セットアップ
+
+まだ GitHub OAuth App を作っていない場合は、次の設定が最短です。
+
+1. GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
+2. 次を入力
+   - **Application name**: `Origami Local` または `Origami Production`
+   - **Homepage URL**: アプリの URL
+   - **Authorization callback URL**: `<APP_URL>/api/auth/github/callback`
+3. client secret を生成
+4. `GITHUB_CLIENT_ID` と `GITHUB_CLIENT_SECRET` に設定
+5. 個人用インスタンスなら `GITHUB_ALLOWED_LOGIN` に自分の GitHub login を入れる
+
+ローカル開発の例：
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=Iv1.xxxxxxxxxxxxx
+GITHUB_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+> 推奨: ローカル用と本番用で GitHub OAuth App を分けると、callback URL の管理がかなり楽になります。
+
 ## 3. データベース初期化
 
 ```bash

@@ -30,6 +30,30 @@ Put the generated value into `ENCRYPTION_KEY`, then fill the rest of `.env`.
 - **Storage:** `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`
 - **Optional OAuth defaults:** `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `OUTLOOK_CLIENT_ID`, `OUTLOOK_CLIENT_SECRET`
 
+## GitHub OAuth App quick setup
+
+If you have not created a GitHub OAuth App yet, the fastest setup is:
+
+1. GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
+2. Fill:
+   - **Application name**: `Origami Local` or `Origami Production`
+   - **Homepage URL**: your app URL
+   - **Authorization callback URL**: `<APP_URL>/api/auth/github/callback`
+3. Generate a client secret
+4. Put the values into `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
+5. For a personal instance, also set `GITHUB_ALLOWED_LOGIN` to your GitHub login
+
+Example for local development:
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=Iv1.xxxxxxxxxxxxx
+GITHUB_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+> Recommended: use one GitHub OAuth App for local development and another one for production.
+
 ## 3. Initialize the database
 
 ```bash

@@ -87,6 +87,28 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 更详细的变量解释见：<https://l7cp.de/Origami/deployment>
 
+### GitHub Auth in 60 seconds
+
+如果你只想最快把登录配起来，照着做：
+
+1. 在 GitHub 打开 **Settings → Developer settings → OAuth Apps → New OAuth App**
+2. 填：
+   - **Homepage URL** = `http://localhost:3000`（本地）或你的正式域名
+   - **Authorization callback URL** = `<你的地址>/api/auth/github/callback`
+3. 生成 client secret
+4. 填到 `.env`：
+
+```txt
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GITHUB_ALLOWED_LOGIN=your-github-login
+```
+
+5. 启动后用 GitHub 登录，完成 `/setup`
+
+推荐：**本地开发**和**生产环境**各用一个单独的 GitHub OAuth App，避免 callback URL 混在一起。
+
 ### 2. 初始化数据库
 
 ```bash

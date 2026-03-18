@@ -24,8 +24,8 @@ const syncEmailsMock = vi.fn();
 const getAccountWithProviderMock = vi.fn();
 const persistProviderCredentialsIfNeededMock = vi.fn();
 const uploadAttachmentMock = vi.fn();
-const buildObjectKeyMock = vi.fn((accountId: string, emailId: string, filename: string) =>
-  `key:${accountId}:${emailId}:${filename}`
+const buildObjectKeyMock = vi.fn((accountId: string, emailId: string, attachmentId: string, filename: string) =>
+  `key:${accountId}:${emailId}:${attachmentId}:${filename}`
 );
 
 const emailsTable = {
@@ -231,9 +231,9 @@ describe("sync-service", () => {
       })
     );
 
-    expect(buildObjectKeyMock).toHaveBeenCalledWith("acc-1", "generated-id", "note.txt");
+    expect(buildObjectKeyMock).toHaveBeenCalledWith("acc-1", "generated-id", "generated-id", "note.txt");
     expect(uploadAttachmentMock).toHaveBeenCalledWith(
-      "key:acc-1:generated-id:note.txt",
+      "key:acc-1:generated-id:generated-id:note.txt",
       Buffer.from("hello"),
       "text/plain"
     );
@@ -244,7 +244,7 @@ describe("sync-service", () => {
         filename: "note.txt",
         contentType: "text/plain",
         size: 5,
-        r2ObjectKey: "key:acc-1:generated-id:note.txt",
+        r2ObjectKey: "key:acc-1:generated-id:generated-id:note.txt",
       })
     );
   });

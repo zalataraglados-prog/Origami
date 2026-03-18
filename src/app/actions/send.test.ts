@@ -10,6 +10,8 @@ const mockAccount = {
 
 const insertedRows: Array<{ table: unknown; payload: unknown }> = [];
 const revalidateMailboxPagesMock = vi.fn();
+const cleanupExpiredComposeUploadsMock = vi.fn(async () => 0);
+const cleanupComposeUploadRowsMock = vi.fn(async () => 0);
 
 const schemaMock = {
   accounts: { name: "accounts", id: "accounts.id" },
@@ -34,6 +36,11 @@ vi.mock("@/lib/account-providers", () => ({
 }));
 vi.mock("@/lib/revalidate", () => ({
   revalidateMailboxPages: revalidateMailboxPagesMock,
+}));
+vi.mock("@/lib/compose-uploads", () => ({
+  cleanupExpiredComposeUploads: cleanupExpiredComposeUploadsMock,
+  cleanupComposeUploadRows: cleanupComposeUploadRowsMock,
+  isComposeUploadExpired: vi.fn(() => false),
 }));
 vi.mock("@/lib/queries/sent-messages", () => ({
   getSentMessageDetailRecord: vi.fn(),
@@ -76,6 +83,8 @@ describe("sendMailAction", () => {
   beforeEach(() => {
     insertedRows.length = 0;
     revalidateMailboxPagesMock.mockClear();
+    cleanupExpiredComposeUploadsMock.mockClear();
+    cleanupComposeUploadRowsMock.mockClear();
     providerMock.getCapabilities.mockClear();
     providerMock.sendMail.mockClear();
     providerMock.getCapabilities.mockReturnValue({ canSend: true });
@@ -106,6 +115,7 @@ describe("sendMailAction", () => {
       localMessageId: expect.any(String),
     });
 
+    expect(cleanupExpiredComposeUploadsMock).toHaveBeenCalledTimes(1);
     expect(providerMock.sendMail).toHaveBeenCalledWith({
       from: "Origami <origami@example.com>",
       to: ["alice@example.com"],

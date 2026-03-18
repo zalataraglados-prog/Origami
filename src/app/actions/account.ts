@@ -6,7 +6,7 @@ import { ActionError, runLoggedAction } from "@/lib/actions";
 import { listSendCapableAccounts } from "@/lib/account-providers";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
-import { accounts, attachments, emails, type Account } from "@/lib/db/schema";
+import { accounts, attachments, emails, sentMessageAttachments, sentMessages, type Account } from "@/lib/db/schema";
 import { getMailboxPreset } from "@/lib/providers/imap-smtp/presets";
 import { getAccountWriteBackAvailability } from "@/lib/providers/writeBack";
 import { getAccountRecordById, listAccounts } from "@/lib/queries/accounts";
@@ -432,17 +432,29 @@ export async function removeAccount(id: string) {
       .select({ id: emails.id })
       .from(emails)
       .where(eq(emails.accountId, id));
+    const sentMessageRows = await db
+      .select({ id: sentMessages.id })
+      .from(sentMessages)
+      .where(eq(sentMessages.accountId, id));
 
     const emailIds = emailRows.map((row) => row.id);
-    if (emailIds.length > 0) {
-      const attachmentRows = await db
-        .select({ key: attachments.r2ObjectKey })
-        .from(attachments)
-        .where(inArray(attachments.emailId, emailIds));
+    const sentMessageIds = sentMessageRows.map((row) => row.id);
+    const receivedAttachmentRows = emailIds.length > 0
+      ? await db
+          .select({ key: attachments.r2ObjectKey })
+          .from(attachments)
+          .where(inArray(attachments.emailId, emailIds))
+      : [];
+    const sentAttachmentRows = sentMessageIds.length > 0
+      ? await db
+          .select({ key: sentMessageAttachments.r2ObjectKey })
+          .from(sentMessageAttachments)
+          .where(inArray(sentMessageAttachments.sentMessageId, sentMessageIds))
+      : [];
 
-      const deletionResults = await Promise.allSettled(
-        attachmentRows.map((row) => deleteAttachment(row.key))
-      );
+    const r2Keys = [...new Set([...receivedAttachmentRows, ...sentAttachmentRows].map((row) => row.key))];
+    if (r2Keys.length > 0) {
+      const deletionResults = await Promise.allSettled(r2Keys.map((key) => deleteAttachment(key)));
 
       for (const result of deletionResults) {
         if (result.status === "rejected") {

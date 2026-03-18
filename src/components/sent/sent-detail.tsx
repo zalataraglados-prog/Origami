@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatFileSize, formatRelativeTime } from "@/lib/format";
+import { sanitizeEmailHtml } from "@/lib/email-html";
 import { parseStoredStringList } from "@/lib/string-list";
 import type { Account, SentMessage, SentMessageAttachment } from "@/lib/db/schema";
 import { Download, Paperclip } from "lucide-react";
@@ -23,6 +24,7 @@ export function SentDetail({
   const toRecipients = parseStoredStringList(message.toRecipients);
   const ccRecipients = parseStoredStringList(message.ccRecipients);
   const bccRecipients = parseStoredStringList(message.bccRecipients);
+  const safeBodyHtml = message.bodyHtml ? sanitizeEmailHtml(message.bodyHtml) : null;
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col p-6">
@@ -63,10 +65,10 @@ export function SentDetail({
       <Separator className="my-4" />
 
       <div className="min-h-64 rounded-[2rem] border border-border/80 bg-background/72 p-5 text-sm shadow-sm">
-        {message.bodyHtml ? (
+        {safeBodyHtml ? (
           <div
             className="prose prose-sm max-w-none dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: message.bodyHtml }}
+            dangerouslySetInnerHTML={{ __html: safeBodyHtml }}
           />
         ) : message.bodyText ? (
           <pre className="whitespace-pre-wrap">{message.bodyText}</pre>

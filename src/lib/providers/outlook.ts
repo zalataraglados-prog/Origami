@@ -425,15 +425,24 @@ export class OutlookProvider implements EmailProvider {
   }
 
   private async deltaSync(cursor: string, options: SyncOptions): Promise<SyncResult> {
-    const page = (await this.client.api(cursor).get()) as Record<string, unknown>;
-    const items = extractActiveMessages(page);
-    const emails = items.map((msg) => this.mapMessage(msg, Boolean(options.metadataOnly)));
-    const removedRemoteIds = extractRemovedRemoteIds(page);
+    let nextUrl: string | null = cursor;
+    let deltaLink: string = cursor;
+    const emails: SyncedEmail[] = [];
+    const removedRemoteIds: string[] = [];
+
+    while (nextUrl) {
+      const page = (await this.client.api(nextUrl).get()) as Record<string, unknown>;
+      const items = extractActiveMessages(page);
+      emails.push(...items.map((msg) => this.mapMessage(msg, Boolean(options.metadataOnly))));
+      removedRemoteIds.push(...extractRemovedRemoteIds(page));
+      deltaLink = typeof page["@odata.deltaLink"] === "string" ? String(page["@odata.deltaLink"]) : deltaLink;
+      nextUrl = typeof page["@odata.nextLink"] === "string" ? String(page["@odata.nextLink"]) : null;
+    }
 
     return {
       emails,
-      removedRemoteIds,
-      newCursor: String(page["@odata.deltaLink"] ?? cursor),
+      removedRemoteIds: [...new Set(removedRemoteIds)],
+      newCursor: deltaLink,
     };
   }
 

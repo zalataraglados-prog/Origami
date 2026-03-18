@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 const insertValuesMock = vi.fn();
 const buildComposeUploadKeyMock = vi.fn(() => "uploads/test-key");
 const uploadAttachmentMock = vi.fn(async () => undefined);
+const cleanupExpiredComposeUploadsMock = vi.fn(async () => 0);
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -21,12 +22,16 @@ vi.mock("@/lib/r2", () => ({
   buildComposeUploadKey: buildComposeUploadKeyMock,
   uploadAttachment: uploadAttachmentMock,
 }));
+vi.mock("@/lib/compose-uploads", () => ({
+  cleanupExpiredComposeUploads: cleanupExpiredComposeUploadsMock,
+}));
 
 describe("compose attachments route", () => {
   beforeEach(() => {
     insertValuesMock.mockReset();
     buildComposeUploadKeyMock.mockClear();
     uploadAttachmentMock.mockClear();
+    cleanupExpiredComposeUploadsMock.mockClear();
   });
 
   it("returns localized validation errors", async () => {
@@ -84,6 +89,7 @@ describe("compose attachments route", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(cleanupExpiredComposeUploadsMock).toHaveBeenCalledTimes(1);
     expect(buildComposeUploadKeyMock).toHaveBeenCalled();
     expect(uploadAttachmentMock).toHaveBeenCalledWith(
       "uploads/test-key",

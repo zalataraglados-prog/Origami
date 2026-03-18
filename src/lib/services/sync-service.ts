@@ -16,7 +16,7 @@ async function persistAttachment(accountId: string, emailId: string, att: Synced
   }
 
   const attId = nanoid();
-  const key = buildObjectKey(accountId, emailId, att.filename);
+  const key = buildObjectKey(accountId, emailId, attId, att.filename);
 
   await uploadAttachment(key, att.content, att.contentType);
   await db.insert(attachments).values({

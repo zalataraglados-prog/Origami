@@ -19,8 +19,8 @@ const persistProviderCredentialsIfNeededMock = vi.fn();
 const getEmailRecordByIdMock = vi.fn();
 const listEmailAttachmentsMock = vi.fn();
 const uploadAttachmentMock = vi.fn();
-const buildObjectKeyMock = vi.fn((accountId: string, emailId: string, filename: string) =>
-  `key:${accountId}:${emailId}:${filename}`
+const buildObjectKeyMock = vi.fn((accountId: string, emailId: string, attachmentId: string, filename: string) =>
+  `key:${accountId}:${emailId}:${attachmentId}:${filename}`
 );
 
 const emailsTable = { name: "emails", id: "emails.id" };

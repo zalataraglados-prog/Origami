@@ -71,14 +71,33 @@ export async function deleteAttachment(key: string): Promise<void> {
   );
 }
 
+function sanitizeObjectKeySegment(value: string, fallback: string): string {
+  const cleaned = value
+    .normalize("NFKC")
+    .replace(/[\\/\u0000-\u001F\u007F]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-.]+/, "")
+    .trim()
+    .slice(0, 120);
+
+  return cleaned || fallback;
+}
+
 export function buildObjectKey(
   accountId: string,
   emailId: string,
+  attachmentId: string,
   filename: string
 ): string {
-  return `${accountId}/${emailId}/${filename}`;
+  const safeAccountId = sanitizeObjectKeySegment(accountId, "account");
+  const safeEmailId = sanitizeObjectKeySegment(emailId, "message");
+  const safeAttachmentId = sanitizeObjectKeySegment(attachmentId, "attachment");
+  const safeFilename = sanitizeObjectKeySegment(filename, "attachment");
+  return `${safeAccountId}/${safeEmailId}/${safeAttachmentId}-${safeFilename}`;
 }
 
 export function buildComposeUploadKey(uploadId: string, filename: string): string {
-  return `compose/${uploadId}/${filename}`;
+  const safeUploadId = sanitizeObjectKeySegment(uploadId, "upload");
+  const safeFilename = sanitizeObjectKeySegment(filename, "attachment");
+  return `compose/${safeUploadId}/${safeFilename}`;
 }

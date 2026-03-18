@@ -24,6 +24,8 @@ export async function claimInstallation(input: {
     ownerGithubLogin: input.ownerGithubLogin,
     ownerGithubName: input.ownerGithubName ?? null,
     ownerGithubAvatarUrl: input.ownerGithubAvatarUrl ?? null,
+  }).onConflictDoNothing({
+    target: appInstallation.id,
   });
 
   return (await getInstallation())!;

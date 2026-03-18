@@ -10,6 +10,11 @@ import {
   sentMessageAttachments,
 } from "@/lib/db/schema";
 import { downloadAttachmentBuffer } from "@/lib/r2";
+import {
+  cleanupComposeUploadRows,
+  cleanupExpiredComposeUploads,
+  isComposeUploadExpired,
+} from "@/lib/compose-uploads";
 import type { SendMailResult, SyncedAttachment } from "@/lib/providers/types";
 import {
   getAccountWithProvider,
@@ -69,6 +74,15 @@ async function loadComposeAttachments(attachmentIds: string[]): Promise<Array<{
   const orderedRows = attachmentIds.map((id) => byId.get(id)).filter(Boolean);
 
   if (orderedRows.length !== attachmentIds.length) {
+    return [];
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const expiredRows = orderedRows.filter((row) => isComposeUploadExpired(row!.createdAt, now));
+  if (expiredRows.length > 0) {
+    await cleanupComposeUploadRows(
+      expiredRows.map((row) => ({ id: row!.id, r2ObjectKey: row!.r2ObjectKey }))
+    );
     return [];
   }
 
@@ -140,6 +154,8 @@ async function persistSentMessage(
 }
 
 export async function sendMailAction(input: SendMailActionInput): Promise<SendMailActionResult> {
+  await cleanupExpiredComposeUploads();
+
   const to = normalizeAddressList(input.to);
   const cc = normalizeAddressList(input.cc);
   const bcc = normalizeAddressList(input.bcc);

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { composeUploads } from "@/lib/db/schema";
 import { buildComposeUploadKey, uploadAttachment } from "@/lib/r2";
+import { cleanupExpiredComposeUploads } from "@/lib/compose-uploads";
 import { APP_LOCALE_COOKIE, normalizeAppLocale, type AppLocale } from "@/i18n/locale";
 
 const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
@@ -54,6 +55,7 @@ function getAttachmentUploadErrorMessage(
 
 export async function POST(request: NextRequest) {
   const locale = getRequestLocale(request);
+  await cleanupExpiredComposeUploads();
   const formData = await request.formData();
   const file = formData.get("file");
 

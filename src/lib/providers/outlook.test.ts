@@ -257,4 +257,82 @@ describe("OutlookProvider", () => {
       newCursor: "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken=seed-2",
     });
   });
+
+  it("consumes delta nextLink pages before advancing the cursor", async () => {
+    const { OutlookProvider } = await import("./outlook");
+
+    getMock.mockImplementation(async (path: string) => {
+      if (path.includes("seed-multi")) {
+        return {
+          value: [
+            {
+              id: "msg-4",
+              internetMessageId: "internet-4",
+              subject: "Page one",
+              from: { emailAddress: { address: "one@example.com" } },
+              toRecipients: [{ emailAddress: { address: "reader@example.com" } }],
+              receivedDateTime: "2026-03-17T15:00:00.000Z",
+              bodyPreview: "preview-4",
+              isRead: false,
+              flag: { flagStatus: "notFlagged" },
+            },
+          ],
+          "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$skiptoken=page-2",
+        };
+      }
+
+      if (path.includes("page-2")) {
+        return {
+          value: [
+            {
+              id: "msg-5",
+              internetMessageId: "internet-5",
+              subject: "Page two",
+              from: { emailAddress: { address: "two@example.com" } },
+              toRecipients: [{ emailAddress: { address: "reader@example.com" } }],
+              receivedDateTime: "2026-03-17T16:00:00.000Z",
+              bodyPreview: "preview-5",
+              isRead: true,
+              flag: { flagStatus: "flagged" },
+            },
+            {
+              id: "msg-removed",
+              "@removed": { reason: "deleted" },
+            },
+          ],
+          "@odata.deltaLink": "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken=seed-final",
+        };
+      }
+
+      throw new Error(`Unexpected GET ${path}`);
+    });
+
+    const provider = new OutlookProvider({
+      accessToken: "access",
+      refreshToken: "refresh",
+      scopes: ["Mail.Read"],
+    });
+
+    const result = await provider.syncEmails(
+      "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken=seed-multi",
+      { metadataOnly: true }
+    );
+
+    expect(getMock).toHaveBeenNthCalledWith(
+      1,
+      "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken=seed-multi"
+    );
+    expect(getMock).toHaveBeenNthCalledWith(
+      2,
+      "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$skiptoken=page-2"
+    );
+    expect(result).toEqual({
+      emails: [
+        expect.objectContaining({ remoteId: "msg-4", messageId: "internet-4", isRead: false, isStarred: false }),
+        expect.objectContaining({ remoteId: "msg-5", messageId: "internet-5", isRead: true, isStarred: true }),
+      ],
+      removedRemoteIds: ["msg-removed"],
+      newCursor: "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken=seed-final",
+    });
+  });
 });

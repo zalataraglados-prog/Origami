@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
 } from "@/app/actions/email";
 import type { Email, Attachment } from "@/lib/db/schema";
 import { formatRelativeTime, formatFileSize } from "@/lib/format";
+import { sanitizeEmailHtml } from "@/lib/email-html";
 import { parseStoredStringList } from "@/lib/string-list";
 import { mapRuntimeErrorToMessage } from "@/lib/runtime-errors";
 import { SnoozeDialog } from "./snooze-dialog";
@@ -180,6 +181,9 @@ export function MailDetail({
   }
 
   const recipients = parseStoredStringList(email.recipients);
+  const safeBodyHtml = useMemo(() => {
+    return email.bodyHtml ? sanitizeEmailHtml(email.bodyHtml) : null;
+  }, [email.bodyHtml]);
 
   const isSnoozed = !!email.localSnoozeUntil && email.localSnoozeUntil > nowTs;
   const hydrationStatus = isHydrating ? "hydrating" : email.hydrationStatus;
@@ -281,8 +285,8 @@ export function MailDetail({
             <div className="flex h-full min-h-48 items-center justify-center text-sm text-muted-foreground">
               {messages.mailDetail.bodyLoading}
             </div>
-          ) : email.bodyHtml ? (
-            <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: email.bodyHtml }} />
+          ) : safeBodyHtml ? (
+            <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: safeBodyHtml }} />
           ) : email.bodyText ? (
             <pre className="whitespace-pre-wrap text-sm">{email.bodyText}</pre>
           ) : hydrationStatus === "hydrated" ? (

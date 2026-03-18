@@ -31,6 +31,7 @@ import type { Email, Attachment } from "@/lib/db/schema";
 import { formatRelativeTime, formatFileSize } from "@/lib/format";
 import { parseStoredStringList } from "@/lib/string-list";
 import { SnoozeDialog } from "./snooze-dialog";
+import { shouldPollMailDetailStatus } from "./mail-detail-state";
 import { getClientActionErrorMessage, useClientAction } from "@/hooks/use-client-action";
 
 interface MailDetailProps {
@@ -171,10 +172,7 @@ export function MailDetail({
 
   const isSnoozed = !!email.localSnoozeUntil && email.localSnoozeUntil > nowTs;
   const hydrationStatus = isHydrating ? "hydrating" : email.hydrationStatus;
-  const shouldPollStatus =
-    hydrationStatus === "hydrating" ||
-    email.readWriteBackStatus === "pending" ||
-    email.starWriteBackStatus === "pending";
+  const shouldPollStatus = shouldPollMailDetailStatus(email, isHydrating);
 
   useEffect(() => {
     if (!shouldPollStatus) return;

@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { sendMailAction } from "@/app/actions/send";
 import { formatFileSize } from "@/lib/format";
 import { mapSendErrorToMessage } from "@/lib/send-errors";
-import { buildComposeHref, buildSentDetailHref, buildSentHref } from "@/lib/inbox-route";
+import { buildComposeHref } from "@/lib/inbox-route";
+import { buildComposeSuccessHref, resolveComposeAccountId } from "./compose-state";
 import { Paperclip, X } from "lucide-react";
 
 interface SendCapableAccount {
@@ -46,9 +47,7 @@ export function ComposeForm({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const defaultAccountId = accounts.some((account) => account.id === initialAccountId)
-    ? initialAccountId!
-    : accounts[0]?.id ?? "";
+  const defaultAccountId = resolveComposeAccountId(accounts, initialAccountId);
   const [selectedAccountId, setSelectedAccountId] = useState(defaultAccountId);
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
@@ -181,11 +180,7 @@ export function ComposeForm({
       setAttachments([]);
 
       toast({ title: "发送成功", description: "邮件已交给服务端发送，并写入本地已发送记录。" });
-      router.push(
-        result.localMessageId
-          ? buildSentDetailHref(result.localMessageId, selectedAccount.id)
-          : buildSentHref(selectedAccount.id)
-      );
+      router.push(buildComposeSuccessHref(result.localMessageId, selectedAccount.id));
       router.refresh();
     });
   }

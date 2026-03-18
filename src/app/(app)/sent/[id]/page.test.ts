@@ -23,6 +23,10 @@ vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
 }));
 
+vi.mock("@/i18n/locale.server", () => ({
+  getRequestLocale: vi.fn().mockResolvedValue("zh-CN"),
+}));
+
 function findElementByType(node: unknown, targetType: unknown): { type: unknown; props: Record<string, unknown> } | null {
   if (!node || typeof node !== "object") return null;
 
@@ -72,6 +76,7 @@ describe("SentDetailPage", () => {
       message: { id: "msg_1" },
       account: { id: "acc_1" },
       attachments: [],
+      locale: "zh-CN",
     });
   });
 

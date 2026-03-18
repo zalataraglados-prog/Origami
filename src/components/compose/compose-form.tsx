@@ -13,6 +13,7 @@ import { mapSendErrorToMessage } from "@/lib/send-errors";
 import { buildComposeHref } from "@/lib/inbox-route";
 import { buildComposeSuccessHref, resolveComposeAccountId } from "./compose-state";
 import { Paperclip, X } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface SendCapableAccount {
   id: string;
@@ -47,6 +48,7 @@ export function ComposeForm({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { messages } = useI18n();
   const defaultAccountId = resolveComposeAccountId(accounts, initialAccountId);
   const [selectedAccountId, setSelectedAccountId] = useState(defaultAccountId);
   const [to, setTo] = useState("");
@@ -94,7 +96,7 @@ export function ComposeForm({
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "附件上传失败");
+          throw new Error(data.error || messages.compose.attachmentUploadFailed);
         }
 
         setAttachments((current) =>
@@ -111,7 +113,7 @@ export function ComposeForm({
           )
         );
       } catch (error) {
-        const message = error instanceof Error ? error.message : "附件上传失败";
+        const message = error instanceof Error ? error.message : messages.compose.attachmentUploadFailed;
         setAttachments((current) =>
           current.map((item) =>
             item.id === tempKey
@@ -123,7 +125,7 @@ export function ComposeForm({
               : item
           )
         );
-        toast({ title: "附件上传失败", description: message, variant: "error" });
+        toast({ title: messages.compose.attachmentUploadFailed, description: message, variant: "error" });
       }
     }
   }
@@ -141,12 +143,16 @@ export function ComposeForm({
     event.preventDefault();
 
     if (!selectedAccount) {
-      toast({ title: "没有可用发件账号", variant: "error" });
+      toast({ title: messages.compose.noAccount, variant: "error" });
       return;
     }
 
     if (attachments.some((attachment) => attachment.isUploading)) {
-      toast({ title: "还有附件在上传中", description: "请等待附件上传完成后再发送。", variant: "error" });
+      toast({
+        title: messages.compose.pendingAttachmentsTitle,
+        description: messages.compose.pendingAttachmentsDescription,
+        variant: "error",
+      });
       return;
     }
 
@@ -165,7 +171,7 @@ export function ComposeForm({
 
       if (!result.ok) {
         toast({
-          title: "发送失败",
+          title: messages.compose.sendFailed,
           description: mapSendErrorToMessage(result.errorCode, result.errorMessage),
           variant: "error",
         });
@@ -179,27 +185,25 @@ export function ComposeForm({
       setTextBody("");
       setAttachments([]);
 
-      toast({ title: "发送成功", description: "邮件已交给服务端发送，并写入本地已发送记录。" });
+      toast({ title: messages.compose.sendSuccess, description: messages.compose.sendSuccessDescription });
       router.push(buildComposeSuccessHref(result.localMessageId, selectedAccount.id));
       router.refresh();
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">写邮件</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          当前支持 Gmail / Outlook 以及国内邮箱 IMAP/SMTP 发信；QQ、163、126、Yeah 等使用授权码或密码通过 SMTP 发送。
-        </p>
+    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-6">
+      <div className="rounded-[2rem] border border-border/80 bg-background/70 p-6 shadow-sm">
+        <h1 className="text-3xl font-semibold tracking-tight">{messages.compose.title}</h1>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{messages.compose.description}</p>
       </div>
 
-      <div className="grid gap-4 rounded-lg border p-4">
+      <div className="grid gap-5 rounded-[2rem] border border-border/80 bg-background/72 p-6 shadow-sm">
         <div className="grid gap-2">
-          <Label htmlFor="compose-from">发件人</Label>
+          <Label htmlFor="compose-from">{messages.compose.from}</Label>
           <select
             id="compose-from"
-            className="rounded-md border bg-background px-3 py-2 text-sm"
+            className="rounded-2xl border bg-background px-3 py-2.5 text-sm"
             value={selectedAccountId}
             onChange={(event) => handleAccountChange(event.target.value)}
             disabled={isPending}
@@ -213,7 +217,7 @@ export function ComposeForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="compose-to">To</Label>
+          <Label htmlFor="compose-to">{messages.compose.to}</Label>
           <Input
             id="compose-to"
             placeholder="alice@example.com, bob@example.com"
@@ -230,7 +234,7 @@ export function ComposeForm({
             className="text-primary underline-offset-4 hover:underline"
             onClick={() => setShowCcBcc((current) => !current)}
           >
-            {showCcBcc ? "收起 Cc / Bcc" : "展开 Cc / Bcc"}
+            {showCcBcc ? messages.compose.hideCcBcc : messages.compose.showCcBcc}
           </button>
         </div>
 
@@ -240,7 +244,7 @@ export function ComposeForm({
               <Label htmlFor="compose-cc">Cc</Label>
               <Input
                 id="compose-cc"
-                placeholder="抄送地址，逗号分隔"
+                placeholder={messages.compose.ccPlaceholder}
                 value={cc}
                 onChange={(event) => setCc(event.target.value)}
                 disabled={isPending}
@@ -250,7 +254,7 @@ export function ComposeForm({
               <Label htmlFor="compose-bcc">Bcc</Label>
               <Input
                 id="compose-bcc"
-                placeholder="密送地址，逗号分隔"
+                placeholder={messages.compose.bccPlaceholder}
                 value={bcc}
                 onChange={(event) => setBcc(event.target.value)}
                 disabled={isPending}
@@ -260,10 +264,10 @@ export function ComposeForm({
         )}
 
         <div className="grid gap-2">
-          <Label htmlFor="compose-subject">主题</Label>
+          <Label htmlFor="compose-subject">{messages.compose.subject}</Label>
           <Input
             id="compose-subject"
-            placeholder="输入主题"
+            placeholder={messages.compose.subjectPlaceholder}
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
             disabled={isPending}
@@ -271,11 +275,11 @@ export function ComposeForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="compose-body">正文</Label>
+          <Label htmlFor="compose-body">{messages.compose.body}</Label>
           <Textarea
             id="compose-body"
-            placeholder="一期先支持纯文本正文"
-            className="min-h-64"
+            placeholder={messages.compose.bodyPlaceholder}
+            className="min-h-72 rounded-2xl"
             value={textBody}
             onChange={(event) => setTextBody(event.target.value)}
             disabled={isPending}
@@ -283,7 +287,7 @@ export function ComposeForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="compose-attachments">附件</Label>
+          <Label htmlFor="compose-attachments">{messages.compose.attachments}</Label>
           <Input
             id="compose-attachments"
             type="file"
@@ -291,11 +295,9 @@ export function ComposeForm({
             onChange={(event) => uploadFiles(event.target.files)}
             disabled={isPending}
           />
-          <p className="text-xs text-muted-foreground">
-            当前版本单个附件需小于 3 MB，以兼容 Outlook 直发接口。
-          </p>
+          <p className="text-xs text-muted-foreground">{messages.compose.attachmentLimit}</p>
           {attachments.length > 0 && (
-            <div className="space-y-2 rounded-md border p-3">
+            <div className="space-y-2 rounded-2xl border p-4">
               {attachments.map((attachment) => (
                 <div key={`${attachment.id}-${attachment.filename}`} className="flex items-center gap-3">
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
@@ -303,7 +305,7 @@ export function ComposeForm({
                     <div className="truncate text-sm">{attachment.filename}</div>
                     <div className="text-xs text-muted-foreground">
                       {formatFileSize(attachment.size)}
-                      {attachment.isUploading && " · 上传中..."}
+                      {attachment.isUploading && ` · ${messages.compose.uploading}`}
                       {attachment.error && ` · ${attachment.error}`}
                     </div>
                   </div>
@@ -319,10 +321,10 @@ export function ComposeForm({
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending}>
-          取消
+          {messages.compose.cancel}
         </Button>
         <Button type="submit" disabled={isPending || !selectedAccount}>
-          {isPending ? "发送中..." : "发送邮件"}
+          {isPending ? messages.compose.sending : messages.compose.send}
         </Button>
       </div>
     </form>

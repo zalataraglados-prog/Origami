@@ -75,6 +75,75 @@ export default defineConfig({
         }
       }
     },
+    "zh-tw": {
+      label: "繁體中文",
+      lang: "zh-TW",
+      link: "/zh-tw/",
+      themeConfig: {
+        siteTitle: "Origami 文件",
+        logo: "✉️",
+        nav: [
+          { text: "首頁", link: "/zh-tw/" },
+          { text: "快速開始", link: "/zh-tw/quick-start" },
+          { text: "部署", link: "/zh-tw/deployment" },
+          { text: "詳細設定", link: "/zh-tw/turso" },
+          { text: "開發", link: "/zh-tw/development" },
+          { text: "架構", link: "/zh-tw/architecture" },
+          { text: "FAQ", link: "/zh-tw/faq" },
+          { text: "GitHub", link: "https://github.com/theLucius7/Origami" }
+        ],
+        sidebar: [
+          {
+            text: "正式部署",
+            items: [
+              { text: "概覽", link: "/zh-tw/" },
+              { text: "快速開始", link: "/zh-tw/quick-start" },
+              { text: "部署指南", link: "/zh-tw/deployment" },
+              { text: "FAQ", link: "/zh-tw/faq" }
+            ]
+          },
+          {
+            text: "詳細設定",
+            items: [
+              { text: "Turso 資料庫", link: "/zh-tw/turso" },
+              { text: "Cloudflare R2 / Bucket", link: "/zh-tw/r2-storage" },
+              { text: "GitHub Auth", link: "/zh-tw/github-auth" },
+              { text: "Gmail OAuth", link: "/zh-tw/gmail-oauth" },
+              { text: "Outlook OAuth", link: "/zh-tw/outlook-oauth" }
+            ]
+          },
+          {
+            text: "開發與參考",
+            items: [
+              { text: "開發與除錯", link: "/zh-tw/development" },
+              { text: "架構", link: "/zh-tw/architecture" },
+              { text: "專案結構", link: "/zh-tw/project-structure" }
+            ]
+          }
+        ],
+        outline: {
+          level: [2, 3],
+          label: "本頁目錄"
+        },
+        docFooter: {
+          prev: "上一頁",
+          next: "下一頁"
+        },
+        lastUpdated: {
+          text: "最後更新"
+        },
+        search: {
+          provider: "local"
+        },
+        socialLinks: [
+          { icon: "github", link: "https://github.com/theLucius7/Origami" }
+        ],
+        footer: {
+          message: "以 MIT License 發布。",
+          copyright: "Copyright © 2026 Lucius7"
+        }
+      }
+    },
     en: {
       label: "English",
       lang: "en-US",

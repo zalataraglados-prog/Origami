@@ -32,6 +32,7 @@ import {
   buildInboxSearchNavigationState,
   resolveVisibleSelectedMailId,
 } from "./inbox-view-state";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface InboxViewProps {
   initialEmails: EmailListItem[];
@@ -53,6 +54,7 @@ export function InboxView({
   const router = useRouter();
   const { toast } = useToast();
   const { isPending: isMutating, run } = useClientAction();
+  const { messages } = useI18n();
   const [emails, setEmails] = useState(initialEmails);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
@@ -110,9 +112,9 @@ export function InboxView({
       })
       .catch((error) => {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : "加载邮件详情失败，请稍后重试。";
+        const message = error instanceof Error ? error.message : messages.inbox.loadDetailErrorDescription;
         toast({
-          title: "加载邮件详情失败",
+          title: messages.inbox.loadDetailErrorTitle,
           description: message,
           variant: "error",
         });
@@ -127,7 +129,7 @@ export function InboxView({
     return () => {
       cancelled = true;
     };
-  }, [initialEmails, selectedId, toast]);
+  }, [messages.inbox.loadDetailErrorDescription, messages.inbox.loadDetailErrorTitle, selectedId, toast]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -163,16 +165,16 @@ export function InboxView({
 
           router.replace(nextState.href, { scroll: false });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "搜索失败，请换个关键词重试。";
+          const message = error instanceof Error ? error.message : messages.inbox.searchErrorDescription;
           toast({
-            title: "搜索失败",
+            title: messages.inbox.searchErrorTitle,
             description: message,
             variant: "error",
           });
         }
       });
     },
-    [accountId, router, selectedId, starred, toast]
+    [accountId, messages.inbox.searchErrorDescription, messages.inbox.searchErrorTitle, router, selectedId, starred, toast]
   );
 
   function handleSearchSubmit(e: React.FormEvent) {
@@ -233,10 +235,7 @@ export function InboxView({
     router.replace(buildCurrentInboxHref({ mailId: undefined }), { scroll: false });
   }
 
-  function runBatchAction(
-    action: () => Promise<void>,
-    errorTitle: string
-  ) {
+  function runBatchAction(action: () => Promise<void>, errorTitle: string) {
     if (selectedIds.length === 0) return;
 
     void run({
@@ -255,48 +254,42 @@ export function InboxView({
   return (
     <>
       <div className="flex h-full flex-1">
-        <div className={`${shouldShowMobileDetail ? "hidden md:flex" : "flex"} w-80 flex-col border-r lg:w-96`}>
-          <div className="border-b p-3">
+        <div className={`${shouldShowMobileDetail ? "hidden md:flex" : "flex"} w-[23rem] flex-col border-r border-border/70 xl:w-[28rem]`}>
+          <div className="border-b border-border/70 p-4">
             <form onSubmit={handleSearchSubmit} className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="搜索邮件..."
-                  className="pl-8"
+                  placeholder={messages.inbox.searchPlaceholder}
+                  className="h-11 rounded-2xl border-border/80 bg-background/80 pl-10 pr-10"
                 />
                 {search && (
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    className="absolute right-2 top-2.5"
-                  >
+                  <button type="button" onClick={clearSearch} className="absolute right-3 top-3">
                     <X className="h-4 w-4 text-muted-foreground" />
                   </button>
                 )}
               </div>
             </form>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{emails.length} 封邮件</span>
-              {starred && <span>• 仅已标星</span>}
-              {activeSearch && <span>• 搜索中</span>}
-              {isPending && <span>• 加载中...</span>}
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>{messages.inbox.count(emails.length)}</span>
+              {starred && <span>• {messages.inbox.starredOnly}</span>}
+              {activeSearch && <span>• {messages.inbox.searching}</span>}
+              {isPending && <span>• {messages.inbox.loading}</span>}
             </div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              示例：<code>from:张三 subject:发票 is:unread account:gmail</code>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              支持：account: / from: / subject: / is:read / is:unread / is:star / is:done / is:archived / is:snoozed
+            <div className="mt-3 rounded-2xl bg-muted/55 px-3 py-2 text-xs text-muted-foreground">
+              <div>
+                {messages.inbox.searchExample.includes("：") ? messages.inbox.searchExample : `Example: ${messages.inbox.searchExample}`}
+              </div>
+              <div className="mt-1">{messages.inbox.searchSupport}</div>
             </div>
           </div>
 
-          <div className="border-b px-3 py-2">
+          <div className="border-b border-border/70 px-4 py-3">
             {selectedIds.length > 0 ? (
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">
-                  已选中 {selectedIds.length} 封邮件
-                </div>
+                <div className="text-xs text-muted-foreground">{messages.inbox.selectedCount(selectedIds.length)}</div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
@@ -306,10 +299,10 @@ export function InboxView({
                       runBatchAction(async () => {
                         await markDone(selectedIds, true);
                         applyBatchPatch(selectedIds, { localDone: 1 });
-                      }, "批量标记 Done 失败")
+                      }, messages.inbox.batchDoneError)
                     }
                   >
-                    <CheckCircle2 className="h-4 w-4" /> Done
+                    <CheckCircle2 className="h-4 w-4" /> {messages.inbox.done}
                   </Button>
                   <Button
                     size="sm"
@@ -319,13 +312,13 @@ export function InboxView({
                       runBatchAction(async () => {
                         await markArchived(selectedIds, true);
                         applyBatchPatch(selectedIds, { localArchived: 1 });
-                      }, "批量归档失败")
+                      }, messages.inbox.batchArchiveError)
                     }
                   >
-                    <Archive className="h-4 w-4" /> 归档
+                    <Archive className="h-4 w-4" /> {messages.inbox.archive}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setBatchSnoozeOpen(true)} disabled={isPending}>
-                    <Clock3 className="h-4 w-4" /> 稍后看
+                    <Clock3 className="h-4 w-4" /> {messages.inbox.snooze}
                   </Button>
                   <Button
                     size="sm"
@@ -335,19 +328,23 @@ export function InboxView({
                       runBatchAction(async () => {
                         await setStarred(selectedIds, true);
                         applyBatchPatch(selectedIds, { isStarred: 1 });
-                      }, "批量标星失败")
+                      }, messages.inbox.batchStarError)
                     }
                   >
-                    <Star className="h-4 w-4" /> 批量标星
+                    <Star className="h-4 w-4" /> {messages.inbox.batchStar}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])} disabled={isPending}>
-                    清空选择
+                    {messages.inbox.clearSelection}
                   </Button>
                 </div>
               </div>
             ) : (
               <Button size="sm" variant="ghost" onClick={handleSelectAllVisible} disabled={isPending}>
-                {emails.length > 0 ? (allVisibleSelected ? "取消全选" : "全选当前列表") : "暂无可选邮件"}
+                {emails.length > 0
+                  ? allVisibleSelected
+                    ? messages.inbox.unselectAll
+                    : messages.inbox.selectAllVisible
+                  : messages.inbox.nothingSelectable}
               </Button>
             )}
           </div>
@@ -375,18 +372,16 @@ export function InboxView({
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  正在加载邮件详情…
+                  {messages.inbox.loadingDetail}
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex flex-1 items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <p className="text-lg">选择一封邮件开始阅读</p>
-                <p className="mt-1 text-sm">在左侧列表中点击邮件查看详情</p>
-                <p className="mt-3 text-xs">
-                  Triage 操作仅在 Origami 本地可见，不会修改远端邮箱状态。
-                </p>
+            <div className="flex flex-1 items-center justify-center px-8 text-muted-foreground">
+              <div className="max-w-md rounded-[2rem] border border-dashed border-border/80 bg-background/55 px-8 py-10 text-center shadow-sm">
+                <p className="text-lg font-medium text-foreground">{messages.inbox.emptyTitle}</p>
+                <p className="mt-1 text-sm">{messages.inbox.emptyDescription}</p>
+                <p className="mt-3 text-xs">{messages.inbox.emptyNote}</p>
               </div>
             </div>
           )}
@@ -396,7 +391,7 @@ export function InboxView({
       <SnoozeDialog
         open={batchSnoozeOpen}
         onOpenChange={setBatchSnoozeOpen}
-        title="批量设置稍后看"
+        title={messages.inbox.batchSnoozeTitle}
         onConfirm={async (value) => {
           await run({
             action: () => snooze(selectedIds, value),
@@ -407,7 +402,7 @@ export function InboxView({
               });
             },
             errorToast: (error) => ({
-              title: "批量设置稍后看失败",
+              title: messages.inbox.batchSnoozeError,
               description: getClientActionErrorMessage(error),
               variant: "error",
             }),

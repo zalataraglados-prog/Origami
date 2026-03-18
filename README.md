@@ -12,11 +12,14 @@
 
 ## 文档
 
-文档站默认语言为**中文**，并支持切换到**英文**和**日语**：
+文档站默认语言为**中文（简体）**，并支持切换到**中文（繁体）**、**英文**和**日语**：
 
-- 中文：<https://l7cp.de/Origami/>
+- 简体中文：<https://l7cp.de/Origami/>
+- 繁體中文：<https://l7cp.de/Origami/zh-tw/>
 - English: <https://l7cp.de/Origami/en/>
 - 日本語: <https://l7cp.de/Origami/ja/>
+
+应用内界面现也支持：**简体中文（默认）/ 繁体中文 / English / 日本語**。
 
 推荐先读：
 

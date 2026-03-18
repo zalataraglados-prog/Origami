@@ -33,6 +33,7 @@ import { parseStoredStringList } from "@/lib/string-list";
 import { SnoozeDialog } from "./snooze-dialog";
 import { shouldPollMailDetailStatus } from "./mail-detail-state";
 import { getClientActionErrorMessage, useClientAction } from "@/hooks/use-client-action";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface MailDetailProps {
   email: Email;
@@ -42,34 +43,39 @@ interface MailDetailProps {
   onLocalUpdate?: (emailId: string, patch: Partial<Email>) => void;
 }
 
-function renderWriteBackStatus(label: string, status: string | null | undefined, error?: string | null) {
+function renderWriteBackStatus(
+  label: string,
+  status: string | null | undefined,
+  error: string | null | undefined,
+  messages: ReturnType<typeof useI18n>["messages"]
+) {
   switch (status) {
     case "pending":
       return (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <RefreshCw className="h-3 w-3 animate-spin" />
-          <span>{label}写回中…</span>
+          <span>{messages.mailDetail.writeBackPending(label)}</span>
         </div>
       );
     case "success":
       return (
         <div className="flex items-center gap-1 text-xs text-emerald-600">
           <CheckCircle className="h-3 w-3" />
-          <span>{label}已写回远端</span>
+          <span>{messages.mailDetail.writeBackSuccess(label)}</span>
         </div>
       );
     case "skipped":
       return (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <MinusCircle className="h-3 w-3" />
-          <span>{label}已跳过{error ? `：${error}` : ""}</span>
+          <span>{messages.mailDetail.writeBackSkipped(label, error)}</span>
         </div>
       );
     case "failed":
       return (
         <div className="flex items-center gap-1 text-xs text-destructive">
           <AlertCircle className="h-3 w-3" />
-          <span>{label}写回失败{error ? `：${error}` : ""}</span>
+          <span>{messages.mailDetail.writeBackFailed(label, error)}</span>
         </div>
       );
     default:
@@ -86,6 +92,7 @@ export function MailDetail({
 }: MailDetailProps) {
   const router = useRouter();
   const { isPending, run } = useClientAction();
+  const { locale, messages } = useI18n();
   const [snoozeOpen, setSnoozeOpen] = useState(false);
   const [nowTs] = useState(() => Math.floor(Date.now() / 1000));
 
@@ -98,13 +105,13 @@ export function MailDetail({
           onLocalUpdate?.(email.id, { isRead: 1 });
         },
         errorToast: (error) => ({
-          title: "标记已读失败",
+          title: messages.mailDetail.markReadError,
           description: getClientActionErrorMessage(error),
           variant: "error",
         }),
       });
     }
-  }, [email.id, email.isRead, onLocalUpdate, run]);
+  }, [email.id, email.isRead, messages.mailDetail.markReadError, onLocalUpdate, run]);
 
   function handleStar() {
     void run({
@@ -114,7 +121,7 @@ export function MailDetail({
         onLocalUpdate?.(email.id, { isStarred: email.isStarred ? 0 : 1 });
       },
       errorToast: (error) => ({
-        title: "更新星标失败",
+        title: messages.mailDetail.updateStarError,
         description: getClientActionErrorMessage(error),
         variant: "error",
       }),
@@ -129,7 +136,7 @@ export function MailDetail({
         onLocalUpdate?.(email.id, { localDone: email.localDone === 1 ? 0 : 1 });
       },
       errorToast: (error) => ({
-        title: "更新 Done 状态失败",
+        title: messages.mailDetail.updateDoneError,
         description: getClientActionErrorMessage(error),
         variant: "error",
       }),
@@ -146,7 +153,7 @@ export function MailDetail({
         onLocalUpdate?.(email.id, { localArchived: nextValue ? 1 : 0 });
       },
       errorToast: (error) => ({
-        title: nextValue ? "归档失败" : "移回主视图失败",
+        title: nextValue ? messages.mailDetail.archiveError : messages.mailDetail.restoreError,
         description: getClientActionErrorMessage(error),
         variant: "error",
       }),
@@ -161,7 +168,7 @@ export function MailDetail({
         onLocalUpdate?.(email.id, { localSnoozeUntil: null });
       },
       errorToast: (error) => ({
-        title: "清除稍后看失败",
+        title: messages.mailDetail.clearSnoozeError,
         description: getClientActionErrorMessage(error),
         variant: "error",
       }),
@@ -186,17 +193,13 @@ export function MailDetail({
 
   return (
     <>
-      <div className="flex h-full flex-col">
-        <div className="flex items-center gap-2 border-b px-4 py-3">
+      <div className="flex h-full flex-col bg-background/65">
+        <div className="flex items-center gap-2 border-b border-border/70 px-5 py-4">
           <h2 className="flex-1 truncate text-lg font-semibold">
-            {email.subject || "(无主题)"}
+            {email.subject || messages.common.untitled}
           </h2>
           <Button variant="ghost" size="icon" onClick={handleStar} disabled={isPending}>
-            <Star
-              className={`h-4 w-4 ${
-                email.isStarred ? "fill-yellow-400 text-yellow-400" : ""
-              }`}
-            />
+            <Star className={`h-4 w-4 ${email.isStarred ? "fill-yellow-400 text-yellow-400" : ""}`} />
           </Button>
           {onClose && (
             <Button variant="ghost" size="icon" onClick={onClose} disabled={isPending}>
@@ -205,63 +208,61 @@ export function MailDetail({
           )}
         </div>
 
-        <div className="border-b px-4 py-3">
-          <div className="mb-2 flex flex-wrap gap-2">
+        <div className="border-b border-border/70 px-5 py-4">
+          <div className="mb-3 flex flex-wrap gap-2">
             <Button variant={email.localDone ? "secondary" : "outline"} size="sm" onClick={handleDoneToggle} disabled={isPending}>
               <CheckCircle2 className="h-4 w-4" />
-              {email.localDone ? "取消 Done" : "Done"}
+              {email.localDone ? messages.mailDetail.cancelDone : messages.mailDetail.done}
             </Button>
             <Button variant={email.localArchived ? "secondary" : "outline"} size="sm" onClick={handleArchiveToggle} disabled={isPending}>
               <Archive className="h-4 w-4" />
-              {email.localArchived ? "移回主视图" : "归档"}
+              {email.localArchived ? messages.mailDetail.restoreToMainView : messages.mailDetail.archive}
             </Button>
             {isSnoozed ? (
               <Button variant="outline" size="sm" onClick={handleClearSnooze} disabled={isPending}>
                 <Clock3 className="h-4 w-4" />
-                清除稍后看
+                {messages.mailDetail.clearSnooze}
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={() => setSnoozeOpen(true)} disabled={isPending}>
                 <Clock3 className="h-4 w-4" />
-                稍后看
+                {messages.mailDetail.snooze}
               </Button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Done / 归档 / 稍后看 仅在 Origami 本地生效，不会写回 Gmail / Outlook / IMAP/SMTP 邮箱。
-          </p>
+          <p className="text-xs text-muted-foreground">{messages.mailDetail.localNote}</p>
         </div>
 
-        <div className="px-4 py-3 text-sm">
+        <div className="px-5 py-4 text-sm">
           <div className="mb-2 flex flex-wrap gap-1">
-            {email.localDone === 1 && <Badge variant="secondary">Done</Badge>}
-            {email.localArchived === 1 && <Badge variant="secondary">已归档</Badge>}
-            {isSnoozed && <Badge variant="secondary">稍后看中</Badge>}
-            {hydrationStatus === "metadata" && <Badge variant="outline">仅元数据</Badge>}
-            {hydrationStatus === "hydrating" && <Badge variant="outline">正文拉取中</Badge>}
-            {hydrationStatus === "hydrated" && <Badge variant="outline">正文已缓存</Badge>}
-            {hydrationStatus === "failed" && <Badge variant="destructive">正文拉取失败</Badge>}
+            {email.localDone === 1 && <Badge variant="secondary">{messages.mailDetail.done}</Badge>}
+            {email.localArchived === 1 && <Badge variant="secondary">{messages.mailDetail.archivedBadge}</Badge>}
+            {isSnoozed && <Badge variant="secondary">{messages.mailDetail.snoozedBadge}</Badge>}
+            {hydrationStatus === "metadata" && <Badge variant="outline">{messages.mailDetail.metadataOnly}</Badge>}
+            {hydrationStatus === "hydrating" && <Badge variant="outline">{messages.mailDetail.hydrating}</Badge>}
+            {hydrationStatus === "hydrated" && <Badge variant="outline">{messages.mailDetail.hydrated}</Badge>}
+            {hydrationStatus === "failed" && <Badge variant="destructive">{messages.mailDetail.hydrationFailed}</Badge>}
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <span className="font-medium">{email.sender}</span>
             </div>
             <span className="text-xs text-muted-foreground">
-              {email.receivedAt ? formatRelativeTime(email.receivedAt) : ""}
+              {email.receivedAt ? formatRelativeTime(email.receivedAt, locale) : ""}
             </span>
           </div>
           {recipients.length > 0 && (
             <p className="mt-1 text-xs text-muted-foreground">
-              收件人: {recipients.join(", ")}
+              {messages.mailDetail.recipients}: {recipients.join(", ")}
             </p>
           )}
           <div className="mt-2 space-y-1">
-            {renderWriteBackStatus("已读", email.readWriteBackStatus, email.readWriteBackError)}
-            {renderWriteBackStatus("星标", email.starWriteBackStatus, email.starWriteBackError)}
+            {renderWriteBackStatus(messages.mailDetail.readWriteBackLabel, email.readWriteBackStatus, email.readWriteBackError, messages)}
+            {renderWriteBackStatus(messages.mailDetail.starWriteBackLabel, email.starWriteBackStatus, email.starWriteBackError, messages)}
             {hydrationStatus === "failed" && email.hydrationError && (
               <div className="flex items-center gap-1 text-xs text-destructive">
                 <AlertCircle className="h-3 w-3" />
-                <span>正文拉取失败：{email.hydrationError}</span>
+                <span>{messages.mailDetail.hydrationFailedDetail(email.hydrationError)}</span>
               </div>
             )}
           </div>
@@ -269,52 +270,41 @@ export function MailDetail({
 
         <Separator />
 
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-5">
           {hydrationStatus === "hydrating" ? (
             <div className="flex h-full min-h-48 items-center justify-center text-sm text-muted-foreground">
-              正在按需拉取正文与附件…
+              {messages.mailDetail.bodyLoading}
             </div>
           ) : email.bodyHtml ? (
-            <div
-              className="prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: email.bodyHtml }}
-            />
+            <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: email.bodyHtml }} />
           ) : email.bodyText ? (
             <pre className="whitespace-pre-wrap text-sm">{email.bodyText}</pre>
           ) : hydrationStatus === "hydrated" ? (
-            <div className="text-sm text-muted-foreground">
-              这封邮件已经成功补拉，但远端没有可显示的正文内容。
-            </div>
+            <div className="text-sm text-muted-foreground">{messages.mailDetail.hydratedNoBody}</div>
           ) : hydrationStatus === "failed" ? (
-            <div className="text-sm text-muted-foreground">
-              正文拉取失败了，你稍后可以重新打开这封邮件再试一次。
-            </div>
+            <div className="text-sm text-muted-foreground">{messages.mailDetail.hydrationFailedNoBody}</div>
           ) : (
-            <div className="text-sm text-muted-foreground">
-              这封邮件当前仅缓存了标题与摘要，点击时会按需补拉正文。
-            </div>
+            <div className="text-sm text-muted-foreground">{messages.mailDetail.metadataNoBody}</div>
           )}
         </ScrollArea>
 
         {attachments.length > 0 && (
           <>
             <Separator />
-            <div className="p-3">
+            <div className="p-4">
               <div className="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
                 <Paperclip className="h-3 w-3" />
-                {attachments.length} 个附件
+                {messages.mailDetail.attachments(attachments.length)}
               </div>
               <div className="flex flex-wrap gap-2">
                 {attachments.map((att) => (
                   <a
                     key={att.id}
                     href={`/api/attachments/${encodeURIComponent(att.id)}`}
-                    className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-accent"
+                    className="flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition-colors hover:bg-accent"
                   >
                     <Download className="h-3 w-3 shrink-0" />
-                    <span className="max-w-[200px] truncate">
-                      {att.filename}
-                    </span>
+                    <span className="max-w-[200px] truncate">{att.filename}</span>
                     <Badge variant="outline" className="text-xs">
                       {formatFileSize(att.size ?? 0)}
                     </Badge>
@@ -339,7 +329,7 @@ export function MailDetail({
               });
             },
             errorToast: (error) => ({
-              title: "设置稍后看失败",
+              title: messages.mailDetail.setSnoozeError,
               description: getClientActionErrorMessage(error),
               variant: "error",
             }),

@@ -1,21 +1,82 @@
-export function formatRelativeTime(unixTimestamp: number): string {
+import type { AppLocale } from "@/i18n/locale";
+
+function getIntlLocale(locale: AppLocale) {
+  switch (locale) {
+    case "zh-CN":
+      return "zh-CN";
+    case "zh-TW":
+      return "zh-TW";
+    case "en":
+      return "en-US";
+    case "ja":
+      return "ja-JP";
+  }
+}
+
+export function formatRelativeTime(unixTimestamp: number, locale: AppLocale = "zh-CN"): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - unixTimestamp;
 
-  if (diff < 60) return "刚刚";
-  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)} 天前`;
-
-  const date = new Date(unixTimestamp * 1000);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-
-  if (date.getFullYear() === new Date().getFullYear()) {
-    return `${month}月${day}日`;
+  if (diff < 60) {
+    switch (locale) {
+      case "zh-TW":
+        return "剛剛";
+      case "en":
+        return "Just now";
+      case "ja":
+        return "たった今";
+      default:
+        return "刚刚";
+    }
   }
 
-  return `${date.getFullYear()}/${month}/${day}`;
+  if (diff < 3600) {
+    const minutes = Math.floor(diff / 60);
+    switch (locale) {
+      case "zh-TW":
+        return `${minutes} 分鐘前`;
+      case "en":
+        return `${minutes} min ago`;
+      case "ja":
+        return `${minutes} 分前`;
+      default:
+        return `${minutes} 分钟前`;
+    }
+  }
+
+  if (diff < 86400) {
+    const hours = Math.floor(diff / 3600);
+    switch (locale) {
+      case "zh-TW":
+        return `${hours} 小時前`;
+      case "en":
+        return `${hours} hr ago`;
+      case "ja":
+        return `${hours} 時間前`;
+      default:
+        return `${hours} 小时前`;
+    }
+  }
+
+  if (diff < 604800) {
+    const days = Math.floor(diff / 86400);
+    switch (locale) {
+      case "zh-TW":
+        return `${days} 天前`;
+      case "en":
+        return `${days} day${days === 1 ? "" : "s"} ago`;
+      case "ja":
+        return `${days} 日前`;
+      default:
+        return `${days} 天前`;
+    }
+  }
+
+  const date = new Date(unixTimestamp * 1000);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat(getIntlLocale(locale), sameYear
+    ? { month: "short", day: "numeric" }
+    : { year: "numeric", month: "short", day: "numeric" }).format(date);
 }
 
 export function formatFileSize(bytes: number): string {

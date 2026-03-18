@@ -9,6 +9,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { listOAuthAppOptions } from "@/lib/oauth-apps";
 import { listAccountRuntimeHealth, listAccounts } from "@/lib/queries/accounts";
+import { getRequestLocale } from "@/i18n/locale.server";
+import { getMessages } from "@/i18n/messages";
 
 interface PageProps {
   searchParams: Promise<{ success?: string; error?: string; writebackEnabled?: string }>;
@@ -16,6 +18,8 @@ interface PageProps {
 
 export default async function AccountsPage({ searchParams }: PageProps) {
   await searchParams;
+  const locale = await getRequestLocale();
+  const messages = getMessages(locale);
   const accounts = await listAccounts();
   const runtimeHealthByAccount = await listAccountRuntimeHealth();
   const oauthAppOptions = await listOAuthAppOptions();
@@ -30,19 +34,21 @@ export default async function AccountsPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="mx-auto max-w-5xl p-6">
+      <div className="mx-auto max-w-6xl p-6">
         <AccountsPageNotifications />
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">邮箱账号</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              管理你的邮箱连接、OAuth 应用，以及 IMAP/SMTP 凭据与服务器配置。
-            </p>
+        <div className="rounded-[2rem] border border-border/80 bg-background/72 p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight">{messages.accountsPage.title}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {messages.accountsPage.description}
+              </p>
+            </div>
+            <AddAccountDialog
+              gmailOAuthApps={gmailOAuthApps}
+              outlookOAuthApps={outlookOAuthApps}
+            />
           </div>
-          <AddAccountDialog
-            gmailOAuthApps={gmailOAuthApps}
-            outlookOAuthApps={outlookOAuthApps}
-          />
         </div>
 
         <Separator className="my-6" />
@@ -50,10 +56,10 @@ export default async function AccountsPage({ searchParams }: PageProps) {
         <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
           <div>
             {accountViews.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-lg text-muted-foreground">还没有添加任何邮箱</p>
+              <div className="flex flex-col items-center justify-center rounded-[2rem] border border-border/80 bg-background/72 py-14 text-center shadow-sm">
+                <p className="text-lg text-muted-foreground">{messages.accountsPage.emptyTitle}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  点击右上角的「添加邮箱」按钮开始
+                  {messages.accountsPage.emptyDescription}
                 </p>
               </div>
             ) : (

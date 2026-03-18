@@ -3,17 +3,23 @@
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 const WRITEBACK_TOAST_KEY = "origami-writeback-enabled-toast-shown";
 
-export function maybeShowWriteBackEnabledToastOnce(toast: (input: { title: string; description?: string; variant?: "default" | "error" }) => void) {
+export function maybeShowWriteBackEnabledToastOnce(
+  toast: (input: { title: string; description?: string; variant?: "default" | "error" }) => void,
+  messages?: ReturnType<typeof useI18n>["messages"]
+) {
   if (typeof window === "undefined") return;
   if (window.localStorage.getItem(WRITEBACK_TOAST_KEY) === "1") return;
 
-  toast({
-    title: "写回已开启",
-    description: "Origami 的操作将同步到你的原邮箱。",
-  });
+  if (messages) {
+    toast({
+      title: messages.accountsNotifications.writeBackEnabledTitle,
+      description: messages.accountsNotifications.writeBackEnabledDescription,
+    });
+  }
   window.localStorage.setItem(WRITEBACK_TOAST_KEY, "1");
 }
 
@@ -22,6 +28,7 @@ export function AccountsPageNotifications() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { messages } = useI18n();
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -31,18 +38,18 @@ export function AccountsPageNotifications() {
     if (!success && !error && !writebackEnabled) return;
 
     if (error) {
-      toast({ title: "授权失败", description: error, variant: "error" });
+      toast({ title: messages.accountsNotifications.authFailed, description: error, variant: "error" });
     } else if (writebackEnabled === "1") {
-      toast({ title: "授权成功", description: "写回已启用" });
+      toast({ title: messages.accountsNotifications.authSuccess, description: messages.accountsNotifications.writeBackEnabled });
       if (typeof window !== "undefined") {
         window.localStorage.setItem(WRITEBACK_TOAST_KEY, "1");
       }
     } else if (success) {
-      toast({ title: "授权成功", description: `已连接 ${success} 账号。` });
+      toast({ title: messages.accountsNotifications.authSuccess, description: messages.accountsNotifications.connectedAccounts(Number(success)) });
     }
 
     router.replace(pathname);
-  }, [pathname, router, searchParams, toast]);
+  }, [messages, pathname, router, searchParams, toast]);
 
   return null;
 }

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface SnoozeDialogProps {
   open: boolean;
@@ -31,9 +32,10 @@ export function SnoozeDialog({
   open,
   onOpenChange,
   onConfirm,
-  title = "设置稍后看时间",
+  title,
 }: SnoozeDialogProps) {
   const [value, setValue] = useState(() => buildDefaultSnoozeValue());
+  const { messages } = useI18n();
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
@@ -46,10 +48,8 @@ export function SnoozeDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            在这个时间之前，邮件会从主列表中临时隐藏。此操作只在 Origami 本地生效。
-          </DialogDescription>
+          <DialogTitle>{title ?? messages.snoozeDialog.title}</DialogTitle>
+          <DialogDescription>{messages.snoozeDialog.description}</DialogDescription>
         </DialogHeader>
 
         <Input
@@ -60,7 +60,7 @@ export function SnoozeDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            取消
+            {messages.common.cancel}
           </Button>
           <Button
             onClick={async () => {
@@ -69,7 +69,7 @@ export function SnoozeDialog({
             }}
             disabled={!value}
           >
-            确认稍后看
+            {messages.snoozeDialog.confirm}
           </Button>
         </DialogFooter>
       </DialogContent>

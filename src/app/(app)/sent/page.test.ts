@@ -11,6 +11,10 @@ vi.mock("@/components/sent/sent-list", () => ({
   SentList: SentListMock,
 }));
 
+vi.mock("@/i18n/locale.server", () => ({
+  getRequestLocale: vi.fn().mockResolvedValue("zh-CN"),
+}));
+
 describe("SentPage", () => {
   beforeEach(() => {
     listSentMessagesMock.mockReset();
@@ -26,6 +30,6 @@ describe("SentPage", () => {
 
     expect(listSentMessagesMock).toHaveBeenCalledWith("acc_1");
     expect(element.type).toBe(SentListMock);
-    expect(element.props).toEqual({ messages, accountId: "acc_1" });
+    expect(element.props).toEqual({ messages, accountId: "acc_1", locale: "zh-CN" });
   });
 });

@@ -4,57 +4,65 @@ import { formatFileSize, formatRelativeTime } from "@/lib/format";
 import { parseStoredStringList } from "@/lib/string-list";
 import type { Account, SentMessage, SentMessageAttachment } from "@/lib/db/schema";
 import { Download, Paperclip } from "lucide-react";
+import type { AppLocale } from "@/i18n/locale";
+import { getMessages } from "@/i18n/messages";
+import { getProviderMeta } from "@/config/providers";
 
 export function SentDetail({
   message,
   account,
   attachments,
+  locale,
 }: {
   message: SentMessage;
   account: Account | null;
   attachments: SentMessageAttachment[];
+  locale: AppLocale;
 }) {
+  const t = getMessages(locale);
   const toRecipients = parseStoredStringList(message.toRecipients);
   const ccRecipients = parseStoredStringList(message.ccRecipients);
   const bccRecipients = parseStoredStringList(message.bccRecipients);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col p-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold">{message.subject || "(无主题)"}</h1>
-        <Badge variant="secondary">已发送</Badge>
-        {account && <Badge variant="outline">{account.provider}</Badge>}
-      </div>
+    <div className="mx-auto flex w-full max-w-4xl flex-col p-6">
+      <div className="rounded-[2rem] border border-border/80 bg-background/72 p-6 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-3xl font-semibold tracking-tight">{message.subject || t.common.untitled}</h1>
+          <Badge variant="secondary">{t.sent.badge}</Badge>
+          {account && <Badge variant="outline">{getProviderMeta(account.provider, locale).label}</Badge>}
+        </div>
 
-      <div className="mt-3 space-y-2 text-sm">
-        <div>
-          <span className="font-medium">From：</span>
-          <span>{message.fromAddress}</span>
-        </div>
-        <div>
-          <span className="font-medium">To：</span>
-          <span>{toRecipients.join(", ") || "-"}</span>
-        </div>
-        {ccRecipients.length > 0 && (
+        <div className="mt-4 space-y-2 text-sm">
           <div>
-            <span className="font-medium">Cc：</span>
-            <span>{ccRecipients.join(", ")}</span>
+            <span className="font-medium">{t.sent.from}: </span>
+            <span>{message.fromAddress}</span>
           </div>
-        )}
-        {bccRecipients.length > 0 && (
           <div>
-            <span className="font-medium">Bcc：</span>
-            <span>{bccRecipients.join(", ")}</span>
+            <span className="font-medium">{t.sent.to}: </span>
+            <span>{toRecipients.join(", ") || "-"}</span>
           </div>
-        )}
-        <div className="text-xs text-muted-foreground">
-          发送时间：{message.sentAt ? formatRelativeTime(message.sentAt) : "刚刚"}
+          {ccRecipients.length > 0 && (
+            <div>
+              <span className="font-medium">Cc: </span>
+              <span>{ccRecipients.join(", ")}</span>
+            </div>
+          )}
+          {bccRecipients.length > 0 && (
+            <div>
+              <span className="font-medium">Bcc: </span>
+              <span>{bccRecipients.join(", ")}</span>
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground">
+            {t.sent.sentTime}: {message.sentAt ? formatRelativeTime(message.sentAt, locale) : ""}
+          </div>
         </div>
       </div>
 
       <Separator className="my-4" />
 
-      <div className="min-h-64 rounded-lg border p-4 text-sm">
+      <div className="min-h-64 rounded-[2rem] border border-border/80 bg-background/72 p-5 text-sm shadow-sm">
         {message.bodyHtml ? (
           <div
             className="prose prose-sm max-w-none dark:prose-invert"
@@ -63,7 +71,7 @@ export function SentDetail({
         ) : message.bodyText ? (
           <pre className="whitespace-pre-wrap">{message.bodyText}</pre>
         ) : (
-          <div className="text-muted-foreground">没有正文内容。</div>
+          <div className="text-muted-foreground">{t.sent.noBody}</div>
         )}
       </div>
 
@@ -73,14 +81,14 @@ export function SentDetail({
           <div>
             <div className="mb-3 flex items-center gap-1 text-sm font-medium">
               <Paperclip className="h-4 w-4" />
-              附件 ({attachments.length})
+              {t.sent.attachments(attachments.length)}
             </div>
             <div className="flex flex-wrap gap-2">
               {attachments.map((attachment) => (
                 <a
                   key={attachment.id}
                   href={`/api/attachments/${encodeURIComponent(attachment.id)}`}
-                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
+                  className="flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm hover:bg-accent"
                 >
                   <Download className="h-4 w-4" />
                   <span className="max-w-[220px] truncate">{attachment.filename}</span>

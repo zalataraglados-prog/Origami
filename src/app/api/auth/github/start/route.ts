@@ -6,17 +6,7 @@ import {
   getOAuthStateCookieName,
   getOAuthStateCookieOptions,
 } from "@/lib/session";
-
-function withHttpsPreviewCookieCompat(request: Request, opts: ReturnType<typeof getOAuthStateCookieOptions>) {
-  // Preview/proxy environments (e.g. Codespaces) can behave like cross-site contexts.
-  // SameSite=Lax cookies may be dropped on POST/XHR requests, which can break OAuth state validation.
-  const proto = request.headers.get("x-forwarded-proto") ?? new URL(request.url).protocol.replace(":", "");
-  const isHttps = proto === "https";
-  if (process.env.NODE_ENV !== "production" && isHttps) {
-    return { ...opts, secure: true, sameSite: "none" as const };
-  }
-  return opts;
-}
+import { withHttpsPreviewCookieCompat } from "@/lib/cookie-compat";
 
 export async function GET(request: Request) {
   const state = randomUUID();

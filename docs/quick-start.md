@@ -6,6 +6,16 @@
 
 - [开发与调试](/development)
 
+## 这页会带你完成什么
+
+按这页走完，你应该能得到一套：
+
+- 可公网访问的 Origami 实例
+- 可登录的 GitHub owner 账号
+- 可用的 Turso 数据库
+- 可用的 Cloudflare R2 附件存储
+- 至少一个可正常同步 / 发信的邮箱账号
+
 ## 推荐部署方案
 
 Origami 当前最稳定的生产组合是：
@@ -15,6 +25,15 @@ Origami 当前最稳定的生产组合是：
 - **附件存储**：Cloudflare R2
 - **登录**：GitHub OAuth App
 - **邮箱接入**：Gmail OAuth、Outlook OAuth、IMAP/SMTP
+
+## 开始前 1 分钟确认
+
+在你真正打开各个平台控制台之前，先确认这 4 件事：
+
+- 你已经确定**最终生产域名**，例如 `mail.example.com`
+- 你不会把 Vercel 预览域名或临时测试域名写进正式 OAuth 配置
+- 你准备把 `NEXT_PUBLIC_APP_URL`、GitHub callback、Gmail callback、Outlook callback 全部统一到同一个正式域名
+- 你是要部署“正式可用实例”，不是本地开发环境
 
 ## 部署前准备
 
@@ -94,6 +113,9 @@ GitHub OAuth App 中填写：
 - **Homepage URL**：`https://mail.example.com`
 - **Authorization callback URL**：`https://mail.example.com/api/auth/github/callback`
 
+> 不要先写成 `https://xxx.vercel.app` 之类的临时地址，再期待后面“自动跟着变”。
+> 如果正式访问域名变了，OAuth 平台里的地址也必须一起更新。
+
 然后将返回的值填入：
 
 ```txt
@@ -150,6 +172,12 @@ npm run db:setup
 - GitHub / Gmail / Outlook OAuth 回调地址全部使用相同域名
 - Turso、R2 与应用环境变量来自同一套生产配置
 
+如果你想更快排除“刚部署就错”的问题，建议立刻做这 3 个检查：
+
+1. 打开 `https://mail.example.com`，确认不是 404，也不是旧站点缓存
+2. 触发一次 GitHub 登录，确认能成功回跳
+3. 登录后进入 `/setup` 或首页，确认不是空白页 / 500
+
 ## 第 5 步：执行发布前校验
 
 在发布前，建议至少执行：
@@ -192,6 +220,44 @@ npm run verify
 - 附件可以上传与下载
 - 同步任务可以正常执行
 - 发信流程可用
+
+## 5 分钟排错
+
+如果你按上面走完，仍然在某一步卡住，优先按下面顺序排查：
+
+### GitHub 登录失败
+
+先看这 4 项：
+
+1. `NEXT_PUBLIC_APP_URL` 是否就是你现在浏览器里访问的那个正式域名
+2. GitHub OAuth App 里的 **Homepage URL** 和 **Authorization callback URL** 是否完全匹配
+3. `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` 是否填错环境、带空格，或来自旧 OAuth app
+4. `GITHUB_ALLOWED_LOGIN` 是否写成了别的 GitHub 用户名
+
+### Gmail / Outlook 授权回不来
+
+先看这 3 项：
+
+1. 对应平台里的 redirect URI 是否写成正式域名
+2. 你当前部署环境里的 `NEXT_PUBLIC_APP_URL` 是否已经换成正式域名
+3. 你是不是改过域名，但忘了把平台控制台里的回调地址同步改掉
+
+### 附件上传 / 下载异常
+
+先看这 4 项：
+
+1. `R2_BUCKET_NAME` 是否就是你实际创建的 bucket
+2. `R2_ENDPOINT` 是否使用了正确的账号 endpoint
+3. `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` 是否对应同一个 R2 账号
+4. 你当前实例使用的是不是另一套旧环境变量
+
+### 新环境初始化异常
+
+先看这 3 项：
+
+1. 全新数据库是否优先执行了 `npm run db:setup`
+2. `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` 是否来自同一个数据库
+3. 你是否把开发环境的库误用到了生产环境
 
 ## 下一步
 

@@ -17,6 +17,25 @@
 
 - [开发与调试](/development)
 
+## 这页适合谁
+
+这页更适合下面这些人：
+
+- 已经准备正式上线，不想只看“最短路径”
+- 想在真正部署前，把关键配置点一次性看清楚
+- 害怕 OAuth callback、环境变量、对象存储这些地方漏一项就卡住
+- 想知道“为什么这样配”，而不只是照着命令跑
+
+## 部署顺序总览
+
+建议按这个顺序推进：
+
+1. 先确定最终生产域名
+2. 再准备 Turso / R2 / GitHub OAuth / Gmail OAuth / Outlook OAuth
+3. 然后填写环境变量并执行 `npm run db:setup`
+4. 再把项目部署到 Vercel
+5. 最后完成首次登录、初始化、账号接入与上线检查
+
 ## 生产环境基线
 
 推荐的生产部署组合：
@@ -67,6 +86,17 @@ R2_SECRET_ACCESS_KEY=...
 R2_BUCKET_NAME=origami-attachments-prod
 R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 ```
+
+### 变量分组速览
+
+如果你想更快检查自己有没有漏项，可以按下面理解：
+
+- **应用基础**：`NEXT_PUBLIC_APP_URL`、`ENCRYPTION_KEY`、`AUTH_SECRET`
+- **登录控制**：`GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`GITHUB_ALLOWED_LOGIN`
+- **数据库**：`TURSO_DATABASE_URL`、`TURSO_AUTH_TOKEN`
+- **附件存储**：`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET_NAME`、`R2_ENDPOINT`
+- **定时任务**：`CRON_SECRET`
+- **默认邮箱 OAuth app（可选）**：`GMAIL_CLIENT_ID`、`GMAIL_CLIENT_SECRET`、`OUTLOOK_CLIENT_ID`、`OUTLOOK_CLIENT_SECRET`
 
 ### 可选变量
 
@@ -152,6 +182,21 @@ npm run db:setup
 - 所有 OAuth 回调地址都已同步更新
 - 项目构建使用正确分支
 
+## 最容易踩坑的 6 个点
+
+1. **正式域名还没定，就先去配 OAuth 平台**  
+   这会导致后面一改域名，GitHub / Google / Microsoft 全都要返工。
+2. **`NEXT_PUBLIC_APP_URL`、浏览器访问地址、各平台 callback 不一致**  
+   这是最常见的授权失败原因。
+3. **把预览环境或临时域名当成正式域名使用**  
+   预览环境适合测试，不适合当长期生产 callback。
+4. **全新数据库没有优先执行 `db:setup`**  
+   新环境建议从 `npm run db:setup` 开始，而不是直接 `db:migrate` 或 `db:push`。
+5. **R2 的 bucket / endpoint / key 不是同一套配置**  
+   这类错误往往要到上传附件时才会暴露。
+6. **部署后没有立即做完整链路检查**  
+   至少走一遍登录、初始化、账号接入、同步、发信和附件上传。
+
 ## 定时同步
 
 `vercel.json` 已定义同步任务入口：
@@ -200,6 +245,15 @@ Authorization: Bearer <CRON_SECRET>
 - 附件上传与下载正常
 - 发信功能正常
 - 定时同步可正常调用 `/api/cron/sync`
+
+## 上线后第一天建议立刻做的事
+
+1. 用 owner 账号完整登录一次，确认 GitHub session 正常
+2. 在 `/accounts` 至少接入一个真实邮箱账号
+3. 手动跑一轮同步，确认收件正常
+4. 发送一封测试邮件，确认发信链路正常
+5. 上传并下载一个附件，确认 R2 链路正常
+6. 观察一次定时同步是否成功命中 `/api/cron/sync`
 
 ## 发布前校验
 

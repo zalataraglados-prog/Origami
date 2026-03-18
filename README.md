@@ -10,6 +10,21 @@
 [![Cloudflare R2](https://img.shields.io/badge/Object%20Storage-Cloudflare%20R2-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/r2/)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://l7cp.de/Origami/)
 
+## 先看哪一页？
+
+如果你是第一次接触 Origami，别从头把所有文档硬啃一遍。先按你的目标选入口：
+
+- **想尽快上线一个可用实例**：看 [快速开始（生产环境）](https://l7cp.de/Origami/quick-start)
+- **想逐项确认生产配置，不想漏任何细节**：看 [部署指南（生产环境）](https://l7cp.de/Origami/deployment)
+- **想本地运行、改代码、调试 OAuth**：看 [开发环境说明](https://l7cp.de/Origami/development)
+- **卡在第三方平台配置页面，不确定下一步点哪里**：直接看这些一步一步教程
+  1. [Turso 数据库详细配置](https://l7cp.de/Origami/turso)
+  2. [Cloudflare R2 / Bucket 详细配置](https://l7cp.de/Origami/r2-storage)
+  3. [GitHub Auth 详细配置](https://l7cp.de/Origami/github-auth)
+  4. [Gmail OAuth 详细配置](https://l7cp.de/Origami/gmail-oauth)
+  5. [Outlook OAuth 详细配置](https://l7cp.de/Origami/outlook-oauth)
+- **想先理解产品边界和设计取舍**：看 [架构说明](https://l7cp.de/Origami/architecture) 和 [FAQ](https://l7cp.de/Origami/faq)
+
 ## 文档
 
 文档站默认语言为**中文（简体）**，并支持切换到**中文（繁体）**、**英文**和**日语**：
@@ -21,21 +36,29 @@
 
 应用内界面现也支持：**简体中文（默认）/ 繁体中文 / English / 日本語**。
 
-推荐先读：
+## 推荐阅读顺序
 
-- [快速开始（生产环境）](https://l7cp.de/Origami/quick-start)
-- [部署指南（生产环境）](https://l7cp.de/Origami/deployment)
-- [开发环境说明](https://l7cp.de/Origami/development)
-- [架构说明](https://l7cp.de/Origami/architecture)
-- [FAQ](https://l7cp.de/Origami/faq)
+### 路线 A：我只想尽快上线
 
-如果你已经准备开始真正部署，推荐按这个顺序看这些“宝宝式教学”页面：
+1. [快速开始（生产环境）](https://l7cp.de/Origami/quick-start)
+2. [部署指南（生产环境）](https://l7cp.de/Origami/deployment)
+3. 遇到具体配置卡点时，再回头看对应的第三方平台教程
 
-1. [Turso 数据库详细配置](https://l7cp.de/Origami/turso)
-2. [Cloudflare R2 / Bucket 详细配置](https://l7cp.de/Origami/r2-storage)
-3. [GitHub Auth 详细配置](https://l7cp.de/Origami/github-auth)
-4. [Gmail OAuth 详细配置](https://l7cp.de/Origami/gmail-oauth)
-5. [Outlook OAuth 详细配置](https://l7cp.de/Origami/outlook-oauth)
+### 路线 B：我要稳一点，按完整生产流程走
+
+1. [部署指南（生产环境）](https://l7cp.de/Origami/deployment)
+2. [Turso 数据库详细配置](https://l7cp.de/Origami/turso)
+3. [Cloudflare R2 / Bucket 详细配置](https://l7cp.de/Origami/r2-storage)
+4. [GitHub Auth 详细配置](https://l7cp.de/Origami/github-auth)
+5. [Gmail OAuth 详细配置](https://l7cp.de/Origami/gmail-oauth)
+6. [Outlook OAuth 详细配置](https://l7cp.de/Origami/outlook-oauth)
+7. 回到 [快速开始（生产环境）](https://l7cp.de/Origami/quick-start) 做最终上线检查
+
+### 路线 C：我要本地改代码
+
+1. [开发环境说明](https://l7cp.de/Origami/development)
+2. [项目结构](https://l7cp.de/Origami/project-structure)
+3. [架构说明](https://l7cp.de/Origami/architecture)
 
 ## 项目定位
 
@@ -143,6 +166,19 @@ npm run verify
 - test
 - app build
 - docs build
+
+## 部署前最容易错的 5 件事
+
+1. **`NEXT_PUBLIC_APP_URL` 和所有 OAuth callback 域名不一致**  
+   这是最常见的登录 / 授权失败来源。
+2. **先拿临时预览域名做正式配置，之后又换回正式域名**  
+   如果域名变了，GitHub / Gmail / Outlook 上的回调地址也要一起改。
+3. **新环境上来就跑 `db:migrate` 或 `db:push`**  
+   对全新数据库，优先用 `npm run db:setup`。
+4. **R2 endpoint 或 bucket 名填错**  
+   结果往往不是“页面打不开”，而是附件上传 / 下载在后面某一步才炸。
+5. **部署后没走一遍完整上线检查**  
+   至少要验证登录、`/setup`、账号接入、同步、发信和附件链路。
 
 ## 生产部署建议
 

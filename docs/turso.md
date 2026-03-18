@@ -2,6 +2,15 @@
 
 这页只讲一件事：**怎么为生产环境的 Origami 准备一个可直接使用的 Turso 数据库**。
 
+## 这页会帮你拿到什么
+
+按这页做完，你应该能拿到并确认这几项：
+
+- 一个已经创建好的 Turso 数据库
+- 正确的 `libsql://...` 数据库 URL
+- 一个确实属于该数据库的 auth token
+- 一组可直接填回 `.env` 的数据库连接配置
+
 ## 最终你要填回 `.env` 的值
 
 ```txt
@@ -88,6 +97,7 @@ origami-prod
 
 1. 数据库真的创建成功
 2. 你记住了数据库名
+3. 你知道自己是在生产环境里用这一个库，而不是测试库
 
 ### 第 4 步：安装 Turso CLI
 
@@ -123,6 +133,14 @@ turso auth login
 
 完成浏览器授权后，CLI 才能读取数据库信息和创建 token。
 
+如果你刚登录完，不妨顺手执行一次：
+
+```bash
+turso db list
+```
+
+确认 CLI 真的能看到你刚创建的数据库。
+
 ### 第 6 步：拿到数据库 URL
 
 假设你的数据库名是：
@@ -148,6 +166,9 @@ libsql://origami-prod-xxxxx.turso.io
 ```txt
 TURSO_DATABASE_URL=libsql://origami-prod-xxxxx.turso.io
 ```
+
+> 不要手工猜 URL，也不要照着别人的示例改几段字符串。  
+> 最稳的做法就是直接复制 CLI 输出。
 
 ### 第 7 步：创建数据库 token
 
@@ -178,6 +199,7 @@ TURSO_AUTH_TOKEN=your-turso-auth-token
 - `TURSO_DATABASE_URL` 直接来自 `turso db show origami-prod --url`
 - `TURSO_AUTH_TOKEN` 直接来自 `turso db tokens create origami-prod`
 - `.env` 里没有额外空格、引号或换行
+- 你当前填入的是生产库，不是测试库
 
 ## 怎么验证配置真的好了
 
@@ -188,6 +210,11 @@ npm run db:setup
 ```
 
 如果数据库连接没问题，这一步应该能正常完成。
+
+如果你想再稳一点，建议继续确认：
+
+1. `db:setup` 没有连到错误的库
+2. 部署后第一次登录和 `/setup` 也都能正常走通
 
 ## 最常见错误
 
@@ -221,6 +248,19 @@ turso auth login
 
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`
+
+### 5. 把开发库和生产库混用了
+
+这是最容易在后面把人搞糊涂的坑之一。  
+如果你同时有 `origami-dev`、`origami-prod` 之类多个数据库，务必确认：
+
+- `.env` 里填的是哪一个
+- 当前部署连的是哪一个
+- `db:setup` 跑的是哪一个
+
+## 一句话验收标准
+
+如果 `npm run db:setup` 能成功完成，而且后续第一次初始化也能正常走通，那这篇配置基本就算完成了。
 
 ## 下一步看什么
 

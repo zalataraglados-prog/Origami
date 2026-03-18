@@ -4,6 +4,15 @@
 
 Origami 会把附件放在 Cloudflare R2，而不是直接塞进数据库。这样更适合邮件附件这种二进制文件。
 
+## 这页会帮你拿到什么
+
+按这页做完，你应该能拿到并确认这几项：
+
+- 正确的 Cloudflare Account ID
+- 一个已创建的 R2 bucket
+- 一组能访问该 bucket 的 R2 API key
+- 一套可填回 `.env` 的 `R2_*` 配置
+
 ## 最终你要填回 `.env` 的值
 
 ```txt
@@ -64,6 +73,12 @@ R2_ENDPOINT=
 
 登录后，确认当前切换到的是你准备放 R2 的那个 Cloudflare account。
 
+如果你有多个 Cloudflare account，这一步一定别跳过。后面最常见的问题就是：
+
+- Account ID 来自 A 账号
+- Key 来自 B 账号
+- bucket 又建在 C 账号
+
 ### 第 2 步：先找 Account ID
 
 在 Cloudflare Dashboard 中找到：
@@ -102,6 +117,7 @@ origami-attachments-prod
 
 1. bucket 确实创建成功
 2. 你记住了准确的 bucket 名
+3. 你确认它就在你当前这个 Cloudflare account 下面
 
 ### 第 4 步：创建 R2 API token
 
@@ -123,6 +139,9 @@ scope 建议只给你刚才创建的那个 bucket。
 - **Secret Access Key**
 
 立刻复制并保存。这两项要回填到 `.env`。
+
+> `Secret Access Key` 通常不会无限次完整展示。  
+> 复制晚了，最省事的处理方式往往是重新创建一组新的 key。
 
 ## 现在回到 `.env`
 
@@ -146,6 +165,7 @@ R2_ENDPOINT=https://1234567890abcdef1234567890abcdef.r2.cloudflarestorage.com
 - `R2_ACCESS_KEY_ID` 和 `R2_SECRET_ACCESS_KEY` 没有填反
 - token 权限至少包含 **Object Read & Write**
 - token 的 scope 包含目标 bucket
+- 这些值都来自同一个 Cloudflare account
 
 ## 怎么验证配置真的好了
 
@@ -161,6 +181,11 @@ R2_ENDPOINT=https://1234567890abcdef1234567890abcdef.r2.cloudflarestorage.com
 - 上传没有报错
 - 发送 / 保存过程正常
 - 详情页里的附件可以下载
+
+如果你想验证得更完整一点，建议再补做这 2 项：
+
+1. 上传一个新附件，确认写入路径正常
+2. 打开一封已有附件的邮件再下载一次，确认读取路径也正常
 
 ## 最常见错误
 
@@ -193,6 +218,19 @@ https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 - endpoint 看起来像真的
 - key 也像真的
 - 但它们其实不属于同一个账号
+
+### 6. 上传能过，下载却失败
+
+这通常说明不是 bucket 完全不可用，而是整条对象存储链路里还有某个值没对齐。  
+优先回头检查：
+
+- `R2_ENDPOINT`
+- `R2_BUCKET_NAME`
+- 当前实例实际加载的环境变量
+
+## 一句话验收标准
+
+如果你能在 Origami 里成功上传附件、发送或保存成功、并且之后还能把同一个附件下载回来，那这篇配置基本就算完成了。
 
 ## 下一步看什么
 

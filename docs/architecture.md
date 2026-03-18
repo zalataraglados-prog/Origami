@@ -24,6 +24,13 @@ Scheduled Sync
   -> /api/cron/sync
 ```
 
+如果你只想先抓住重点，可以先把 Origami 理解成 4 层：
+
+1. **Web 应用层**：Next.js 页面、Server Actions、Route Handlers
+2. **业务逻辑层**：账号管理、同步、发信、triage、写回
+3. **Provider 适配层**：Gmail / Outlook / IMAP/SMTP
+4. **存储层**：Turso 保存结构化数据，R2 保存附件对象
+
 ## 核心设计原则
 
 ### 1. 单用户优先
@@ -202,6 +209,32 @@ Compose form
 - `CRON_SECRET` 保护同步入口
 - GitHub owner session 保护应用访问
 - 邮箱 OAuth callback state 会签名并绑定当前登录 session
+
+## 如果你在读代码，建议先看哪几块
+
+### 想理解“为什么它能登录”
+
+先看：
+
+- GitHub OAuth 相关 route / session 逻辑
+- `src/lib/session*`
+- `src/lib/secrets*`
+
+### 想理解“为什么它能同步邮件”
+
+先看：
+
+- 同步 action / route
+- `src/lib/services/sync-service.ts`
+- `src/lib/providers/*`
+
+### 想理解“为什么它能发信和传附件”
+
+先看：
+
+- compose / send action
+- provider 的 sendMail 实现
+- R2 相关对象存储逻辑
 
 ## 哪些是故意没做的
 

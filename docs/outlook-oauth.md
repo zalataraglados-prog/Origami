@@ -4,6 +4,15 @@
 
 它不是 GitHub 登录。GitHub 负责登录 Origami，Outlook OAuth 负责让 Origami 访问你的 Outlook 邮箱。
 
+## 这页会帮你拿到什么
+
+按这页做完，你应该能拿到并确认这几项：
+
+- 一个可用于 Origami 的 Microsoft Entra app registration
+- 一个正确的 Web Redirect URI
+- 一组正确的 Microsoft Graph delegated permissions
+- 一组可填回 `.env` 的 `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET`
+
 ## 最终你要填回 `.env` 的值
 
 ```txt
@@ -47,6 +56,8 @@ Origami Outlook Production
 ```
 
 > 本页里的 `mail.example.com` 只是示例，请替换成你自己的正式域名。
+>
+> **如果你先用临时域名创建 app，后面改正式域名时也要同步改 Redirect URI。**
 
 ## 你会在两个地方来回操作
 
@@ -101,6 +112,9 @@ Origami Outlook Production
 
 - **Accounts in any organizational directory and personal Microsoft accounts**
 
+> 如果你只打算给单一企业租户使用，也可以按自己的租户策略缩小范围。  
+> 但只要你需要兼容个人 Outlook.com 账号，就别选太窄。
+
 ### 第 3 步：添加 Web Redirect URI
 
 按这个顺序点：
@@ -135,6 +149,9 @@ https://mail.example.com/api/oauth/outlook
 - Client secret Value
 
 这两项要回填到 `.env`。
+
+> Microsoft 的 secret 也常常只在创建后完整展示一次。  
+> 复制的是 **Value**，不是 description，也不是 secret ID。
 
 ### 第 5 步：添加 Microsoft Graph 权限
 
@@ -195,6 +212,11 @@ OUTLOOK_CLIENT_SECRET=your-microsoft-oauth-client-secret
 - 能查看邮件
 - 能发信
 
+建议你再补做两个小验证：
+
+1. 手动同步一次，确认最近邮件能拉下来
+2. 发一封测试邮件，确认 `Mail.Send` 真正可用
+
 ## 最常见错误
 
 ### 1. `AADSTS50011` / redirect URI mismatch
@@ -223,6 +245,22 @@ OUTLOOK_CLIENT_SECRET=your-microsoft-oauth-client-secret
 ### 4. 公司租户里授权不过
 
 大概率是组织策略或 admin consent 的问题，不一定是 Origami 本身配置错了。
+
+### 5. 明明创建了 secret，但还是提示 client secret 无效
+
+先确认你填回 `.env` 的是不是：
+
+- **Client secret Value**
+
+而不是：
+
+- secret 名称
+- secret ID
+- 过期后重新生成前的旧值
+
+## 一句话验收标准
+
+如果你能在 `/accounts` 里完成 Outlook 授权、回跳后看到账号接入成功，并且这账号既能同步又能发信，那这篇配置基本就算完成了。
 
 ## 下一步看什么
 

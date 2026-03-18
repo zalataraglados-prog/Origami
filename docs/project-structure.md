@@ -2,6 +2,10 @@
 
 这一页不是“列目录”，而是帮助你快速判断：**想改什么，应该从哪里下手。**
 
+如果你是第一次看 Origami 源码，可以先记住一句话：
+
+> 页面和接口入口多在 `src/app/`，通用业务逻辑多在 `src/lib/`，界面组件多在 `src/components/`。
+
 ## 仓库根目录
 
 ```text
@@ -90,6 +94,22 @@ src/
 - `services/`：更高层的编排逻辑
 - `providers/`：Gmail / Outlook / IMAP/SMTP 集成
 - `oauth-apps.ts`：OAuth app 解析与管理逻辑
+
+## 一个简单的心智模型
+
+你可以先这样理解整套代码：
+
+- **`src/app/`**：路由入口、页面、HTTP endpoint、server action
+- **`src/components/`**：页面上真正渲染出来的 UI 组件
+- **`src/lib/queries/`**：偏“读数据”
+- **`src/lib/services/`**：偏“把多个步骤编排起来”
+- **`src/lib/providers/`**：偏“和外部邮箱服务对接”
+
+如果你在排查一个问题时不知道该从哪进，最实用的方法是：
+
+1. 先找到触发这个行为的页面或 action
+2. 再顺着它调用到 `queries / services / providers`
+3. 最后再看数据库结构或外部 API 适配层
 
 ## 想改某个功能时，看哪里
 

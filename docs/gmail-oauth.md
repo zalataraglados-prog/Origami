@@ -4,6 +4,16 @@
 
 它不是 GitHub 登录。GitHub 负责让你进入 Origami，Gmail OAuth 负责让 Origami 访问你的 Gmail 邮箱。
 
+## 这页会帮你拿到什么
+
+按这页做完，你应该能拿到并确认这几项：
+
+- 一个专门给 Origami 用的 Google Cloud Project
+- 已启用的 Gmail API
+- 一个配置完成的 OAuth consent screen
+- 一个类型正确的 **Web application** OAuth client
+- 一组可填回 `.env` 的 `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET`
+
 ## 最终你要填回 `.env` 的值
 
 ```txt
@@ -46,6 +56,9 @@ Origami Gmail Production
 ```
 
 > 本页里的 `mail.example.com` 只是示例，请替换成你自己的正式域名。
+>
+> **不要把 Preview / 临时域名当成正式 Redirect URI。**
+> 如果你后面换了正式域名，Google Cloud Console 里的 Redirect URI 也必须一起改。
 
 ## 你会在两个地方来回操作
 
@@ -102,7 +115,7 @@ Origami Gmail Production
 
 ### 第 4 步：配置 OAuth consent screen
 
-常见入口是：
+Google 控制台的导航名字有时会微调，但你通常会看到类似这些入口：
 
 1. **Google Auth platform**
 2. **Branding**
@@ -126,6 +139,9 @@ Origami Gmail Production
 然后把你实际要授权的 Google 账号加入：
 
 - **Test users**
+
+> 对个人自托管场景来说，看到 testing / test users 并不奇怪。  
+> 只要是你自己或你明确加入的测试账号在授权，这通常就是正常路径。
 
 #### Data Access
 
@@ -203,6 +219,11 @@ GMAIL_CLIENT_SECRET=your-google-oauth-client-secret
 - 能查看邮件
 - 能发信
 
+建议你再补做两个小验证：
+
+1. 随手同步一次，确认收件列表确实出来了
+2. 发一封带小附件的测试邮件，确认读写两条链路都通
+
 ## 最常见错误
 
 ### 1. `redirect_uri_mismatch`
@@ -224,12 +245,28 @@ GMAIL_CLIENT_SECRET=your-google-oauth-client-secret
 - Audience 是否为 **External**
 - 当前 Google 账号是否已加入 **Test users**
 
+如果这是你自己的自托管实例，这类提示很多时候只是说明 app 还没走公开发布流程，不代表 Origami 配错了。
+
 ### 4. 授权成功了，但发信时报权限不足
 
 检查 scopes 是否包含：
 
 - `gmail.send`
 - `gmail.modify`
+
+### 5. 明明昨天能用，换域名后今天不能用了
+
+优先检查：
+
+- `NEXT_PUBLIC_APP_URL`
+- Google OAuth client 的 Redirect URI
+- 浏览器当前访问的正式域名
+
+这三者必须继续保持一致。
+
+## 一句话验收标准
+
+如果你能在 `/accounts` 里完成 Gmail 授权、回跳后看到账号接入成功，并且这账号既能同步又能发信，那这篇配置基本就算完成了。
 
 ## 下一步看什么
 

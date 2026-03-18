@@ -17,7 +17,7 @@ export default defineConfig({
           { text: "首页", link: "/" },
           { text: "快速开始", link: "/quick-start" },
           { text: "部署", link: "/deployment" },
-          { text: "详细配置", link: "/turso" },
+          { text: "平台配置", link: "/turso" },
           { text: "开发", link: "/development" },
           { text: "架构", link: "/architecture" },
           { text: "FAQ", link: "/faq" },
@@ -34,7 +34,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "详细配置",
+            text: "第三方平台配置",
             items: [
               { text: "Turso 数据库", link: "/turso" },
               { text: "Cloudflare R2 / Bucket", link: "/r2-storage" },

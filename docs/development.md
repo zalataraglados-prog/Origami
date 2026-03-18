@@ -47,11 +47,20 @@ CRON_SECRET=64-char-hex-key
 TURSO_DATABASE_URL=...
 TURSO_AUTH_TOKEN=...
 
+R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET_NAME=origami-attachments-dev
 R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 ```
+
+如果你想少踩坑，可以把这些变量理解成 5 组：
+
+- **应用基础**：`NEXT_PUBLIC_APP_URL`、`ENCRYPTION_KEY`、`AUTH_SECRET`
+- **GitHub 登录**：`GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`GITHUB_ALLOWED_LOGIN`
+- **数据库**：`TURSO_DATABASE_URL`、`TURSO_AUTH_TOKEN`
+- **附件存储**：`R2_ACCOUNT_ID`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET_NAME`、`R2_ENDPOINT`
+- **定时任务**：`CRON_SECRET`
 
 ## 本地 OAuth 回调地址
 
@@ -87,6 +96,14 @@ npm run dev
 默认访问地址：
 
 - `http://localhost:3000`
+
+如果你只是第一次把项目跑起来，推荐按这个顺序检查：
+
+1. `npm install` 没报错
+2. `.env` 已经填入一套开发环境变量
+3. `npm run db:setup` 能成功完成
+4. `npm run dev` 后浏览器能打开 `http://localhost:3000`
+5. GitHub 登录、本地 OAuth 回调、基础页面都能正常工作
 
 ## 常用命令
 
@@ -140,6 +157,19 @@ npm run db:push
 - `R2_ENDPOINT`
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
+
+## 最常见的本地开发坑
+
+1. **把生产 OAuth app 直接拿来给 `localhost` 用**  
+   结果往往是 callback URL 对不上，或者把正式配置也搞乱。
+2. **忘了把 `.env.local.example` 复制成 `.env` 就直接跑**  
+   页面能开不代表关键功能都能用。
+3. **开发库 / 生产库混用**  
+   一旦你同时在调 schema 和真实数据，这会很危险。
+4. **R2 配置不完整，等到上传附件时才发现炸了**  
+   这类问题通常不是前几步就会暴露。
+5. **本地端口换了，但 OAuth callback 还写着 3000**  
+   这会让授权页看起来能打开，但回跳失败。
 
 ## 提交前建议
 

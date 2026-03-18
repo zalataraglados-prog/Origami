@@ -4,6 +4,16 @@
 
 它负责的是“登录 Origami 后台”，不是接入 Gmail / Outlook 邮箱。
 
+## 这页会帮你拿到什么
+
+按这页做完，你应该能拿到并确认这几项：
+
+- 一个可用于 Origami 登录的 GitHub OAuth App
+- 正确的 **Homepage URL**
+- 正确的 **Authorization callback URL**
+- 一组可填回 `.env` 的 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+- 一个明确的 `GITHUB_ALLOWED_LOGIN`
+
 ## 最终你要填回 `.env` 的值
 
 ```txt
@@ -46,6 +56,9 @@ your-github-login
 ```
 
 > 本页里的 `mail.example.com` 只是示例，请全部替换成你自己的正式域名。
+>
+> **不要先用 `https://xxx.vercel.app` 之类的临时地址创建正式 OAuth App。**
+> 如果你后面把站点切到正式域名，GitHub 这里也要跟着改。
 
 ## 你会在两个地方来回操作
 
@@ -141,6 +154,8 @@ https://mail.example.com/api/auth/github/callback
 
 这两项要回填到 `.env`。
 
+> `Client Secret` 往往只在创建时完整展示一次，别等关页面之后才想起来抄。
+
 ## 现在回到 `.env`
 
 把这些行填好：
@@ -186,6 +201,12 @@ https://mail.example.com/login
 5. 第一次安装时进入 `/setup`
 6. 完成初始化后进入首页或 `/accounts`
 
+如果你想更稳一点，建议再补做这 3 个动作：
+
+1. 退出后再重新登录一次
+2. 确认 owner 账号仍能正常进入
+3. 确认其他 GitHub 账号不会误进你的实例
+
 ## 最常见错误
 
 ### 1. 点 GitHub 登录后直接报 callback error
@@ -223,6 +244,27 @@ Authorization callback URL=...
 ```txt
 <APP_URL>/api/auth/github/callback
 ```
+
+### 4. 换了正式域名后突然登录失效
+
+大概率不是 Origami 坏了，而是 GitHub OAuth App 里还保留着旧域名。
+
+你需要一起检查：
+
+- `NEXT_PUBLIC_APP_URL`
+- Homepage URL
+- Authorization callback URL
+
+### 5. 第一次绑定错了 owner
+
+如果你第一次初始化时用了错误的 GitHub 账号，后面会很别扭。  
+这通常不是 OAuth App 本身的问题，而是安装阶段 owner 绑定错了。
+
+这种情况一般需要清理安装记录后重新初始化，别继续在错误绑定上硬修。
+
+## 一句话验收标准
+
+如果你能用指定的 GitHub 账号正常登录 Origami，能进 `/setup` 或首页，而别的 GitHub 账号不会误进来，那这篇配置基本就算完成了。
 
 ## 下一步看什么
 

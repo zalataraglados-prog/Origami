@@ -192,8 +192,10 @@ export function AccountCard({ account, oauthApps }: AccountCardProps) {
               onClick={handleRemove}
               disabled={isPending}
               className="text-destructive hover:text-destructive"
+              aria-label={t.accountCard.removeButtonAria(account.email)}
             >
               <Trash2 className="h-4 w-4" />
+              <span className="sr-only">{t.accountCard.removeButtonAria(account.email)}</span>
             </Button>
           </div>
         </div>

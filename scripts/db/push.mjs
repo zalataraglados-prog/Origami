@@ -2,7 +2,7 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { sql } from "drizzle-orm";
 import { pushSQLiteSchema } from "drizzle-kit/api";
-import * as schema from "../src/lib/db/schema.ts";
+import * as schema from "../../src/lib/db/schema.ts";
 
 const dbUrl = process.env.TURSO_DATABASE_URL;
 const authToken = process.env.TURSO_AUTH_TOKEN;

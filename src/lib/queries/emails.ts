@@ -200,12 +200,11 @@ export async function listEmails(opts?: {
     if (ftsQuery) {
       const ftsWhere = and(
         ...baseConditions,
-        inArray(
-          emails.id,
-          sql`select id from emails where rowid in (
+        sql`${emails.id} in (
+          select id from emails where rowid in (
             select rowid from emails_fts where emails_fts match ${ftsQuery}
-          )`
-        )
+          )
+        )`
       );
 
       try {

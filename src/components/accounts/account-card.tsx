@@ -50,6 +50,9 @@ export function AccountCard({ account, oauthApps }: AccountCardProps) {
   const currentOauthAppId = account.oauthAppId ?? "default";
   const [selectedOauthAppId, setSelectedOauthAppId] = useState(currentOauthAppId);
   const selectedOAuthApp = oauthApps.find((item) => item.id === selectedOauthAppId) ?? null;
+  const fetchLimitOptions = useMemo(() => {
+    return Array.from(new Set([50, 200, 1000, account.initialFetchLimit ?? 200])).sort((a, b) => a - b);
+  }, [account.initialFetchLimit]);
 
   function handleRemove() {
     if (!confirm(t.accountCard.removeConfirm(account.email))) return;
@@ -249,9 +252,11 @@ export function AccountCard({ account, oauthApps }: AccountCardProps) {
             onChange={(event) => handleFetchLimitChange(event.target.value)}
             disabled={isPending}
           >
-            <option value="50">50</option>
-            <option value="200">200</option>
-            <option value="1000">1000</option>
+            {fetchLimitOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
           </select>
         </div>
 

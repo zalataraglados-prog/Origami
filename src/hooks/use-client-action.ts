@@ -3,6 +3,10 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/providers/i18n-provider";
+import { parseSerializedActionError } from "@/lib/actions";
+import { getLocalizedActionErrorFallback, getLocalizedActionErrorMessage } from "@/i18n/action-errors";
+import { APP_LOCALE_COOKIE, DEFAULT_APP_LOCALE, normalizeAppLocale, type AppLocale } from "@/i18n/locale";
 
 export interface ClientActionToast {
   title: string;
@@ -35,19 +39,49 @@ interface RunClientActionOptions<T> {
   onSettled?: () => void | Promise<void>;
 }
 
+function resolveClientLocale(): AppLocale {
+  if (typeof document === "undefined") return DEFAULT_APP_LOCALE;
+
+  const cookie = document.cookie
+    .split("; ")
+    .find((entry) => entry.startsWith(`${APP_LOCALE_COOKIE}=`))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+
+  return normalizeAppLocale(cookie ? decodeURIComponent(cookie) : undefined);
+}
+
 export function getClientActionErrorMessage(
   error: unknown,
-  fallback = "操作失败，请稍后重试。"
+  fallback?: string,
+  localeInput?: AppLocale
 ) {
-  if (error instanceof Error && error.message) {
-    return error.message;
+  const locale = localeInput ?? resolveClientLocale();
+  const localizedFallback = fallback ?? getLocalizedActionErrorFallback(locale);
+
+  const rawMessage =
+    error instanceof Error && error.message
+      ? error.message
+      : typeof error === "string" && error.trim()
+        ? error
+        : null;
+
+  if (!rawMessage) {
+    return localizedFallback;
   }
 
-  if (typeof error === "string" && error.trim()) {
-    return error;
+  const serialized = parseSerializedActionError(rawMessage);
+  if (serialized) {
+    return getLocalizedActionErrorMessage(
+      serialized.code,
+      locale,
+      serialized.details,
+      serialized.message || localizedFallback
+    );
   }
 
-  return fallback;
+  return rawMessage;
 }
 
 function resolveToast<T>(input: MaybeToast<T>, value: T) {
@@ -57,6 +91,7 @@ function resolveToast<T>(input: MaybeToast<T>, value: T) {
 export function useClientAction() {
   const router = useRouter();
   const { toast } = useToast();
+  const { locale, messages } = useI18n();
   const [isPending, setIsPending] = useState(false);
 
   const run = useCallback(async <T,>(options: RunClientActionOptions<T>) => {
@@ -70,7 +105,7 @@ export function useClientAction() {
         const failureToast =
           failure.toast === undefined
             ? {
-                title: failure.title ?? "操作失败",
+                title: failure.title ?? messages.common.actionFailed,
                 description: failure.description,
                 variant: "error" as const,
               }
@@ -102,8 +137,8 @@ export function useClientAction() {
       if (errorToast !== false) {
         toast(
           errorToast ?? {
-            title: "操作失败",
-            description: getClientActionErrorMessage(error),
+            title: messages.common.actionFailed,
+            description: getClientActionErrorMessage(error, undefined, locale),
             variant: "error",
           }
         );
@@ -115,7 +150,7 @@ export function useClientAction() {
       setIsPending(false);
       await options.onSettled?.();
     }
-  }, [router, toast]);
+  }, [locale, messages.common.actionFailed, router, toast]);
 
   return { isPending, run };
 }

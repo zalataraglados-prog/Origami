@@ -2,6 +2,7 @@ import { DEFAULT_OAUTH_APP_ID } from "@/lib/oauth-apps.shared";
 import { getAccountWriteBackAvailability } from "@/lib/providers/writeBack";
 import { EMPTY_ACCOUNT_RUNTIME_HEALTH } from "@/lib/queries/accounts";
 import type { Account } from "@/lib/db/schema";
+import type { AppLocale } from "@/i18n/locale";
 import type { OAuthAppOption } from "@/lib/oauth-apps.shared";
 import type { AccountRuntimeHealthSummary } from "@/lib/queries/accounts";
 import type { AccountSettingsView, OAuthAppUsageView } from "./types";
@@ -29,6 +30,7 @@ export function buildAccountSettingsViews(params: {
   accounts: Account[];
   oauthAppOptions: OAuthAppOption[];
   runtimeHealthByAccount: Map<string, AccountRuntimeHealthSummary>;
+  locale?: AppLocale;
 }): AccountSettingsView[] {
   const oauthAppLabelByKey = new Map<string, string>();
 
@@ -49,7 +51,7 @@ export function buildAccountSettingsViews(params: {
       ...EMPTY_ACCOUNT_RUNTIME_HEALTH,
       ...params.runtimeHealthByAccount.get(account.id),
       oauthAppLabel,
-      ...getAccountWriteBackAvailability(account),
+      ...getAccountWriteBackAvailability(account, params.locale),
     };
   });
 }

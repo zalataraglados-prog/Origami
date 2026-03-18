@@ -2,7 +2,7 @@
 
 import { eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { runLoggedAction } from "@/lib/actions";
+import { ActionError, runLoggedAction } from "@/lib/actions";
 import { listSendCapableAccounts } from "@/lib/account-providers";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
@@ -69,14 +69,20 @@ function parseAccountCredentials(account: Account) {
 
 function validateInitialFetchLimit(initialFetchLimit: number) {
   if (![50, 200, 1000].includes(initialFetchLimit)) {
-    throw new Error("Unsupported initial fetch limit");
+    throw new ActionError(
+      "ACCOUNT_INITIAL_FETCH_LIMIT_INVALID",
+      "The initial fetch limit is invalid"
+    );
   }
 }
 
-function normalizePort(value: number | undefined, fallback: number, label: string): number {
+function normalizePort(value: number | undefined, fallback: number, kind: "IMAP" | "SMTP"): number {
   const port = value ?? fallback;
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-    throw new Error(`${label} 端口无效`);
+    throw new ActionError(
+      kind === "IMAP" ? "ACCOUNT_IMAP_PORT_INVALID" : "ACCOUNT_SMTP_PORT_INVALID",
+      `${kind} port is invalid`
+    );
   }
   return port;
 }
@@ -90,15 +96,19 @@ function resolveMailboxConfig(params: {
   const presetKey = params.provider === "qq" ? "qq" : params.input.presetKey;
   const preset = getMailboxPreset(presetKey);
   if (!preset) {
-    throw new Error("Unsupported mailbox preset");
+    throw new ActionError("ACCOUNT_MAILBOX_PRESET_UNSUPPORTED", "Mailbox preset is not supported");
   }
 
   const displayName = params.input.displayName?.trim() || params.accountEmail;
   const authUser = (params.input.authUser?.trim() || params.accountEmail).trim();
   const authPass = params.input.authPass?.trim() || params.fallbackAuthPass?.trim() || "";
 
-  if (!authUser) throw new Error("登录用户名不能为空");
-  if (!authPass) throw new Error("授权码或密码不能为空");
+  if (!authUser) {
+    throw new ActionError("ACCOUNT_AUTH_USER_REQUIRED", "Login username is required");
+  }
+  if (!authPass) {
+    throw new ActionError("ACCOUNT_AUTH_PASS_REQUIRED", "App password or password is required");
+  }
 
   const isCustom = presetKey === "custom";
   const imapHost = (params.input.imapHost ?? preset.imapHost).trim();
@@ -110,7 +120,7 @@ function resolveMailboxConfig(params: {
 
   if (isCustom) {
     if (!imapHost || !smtpHost) {
-      throw new Error("自定义 IMAP/SMTP 账号必须填写服务器地址");
+      throw new ActionError("ACCOUNT_CUSTOM_HOST_REQUIRED", "Custom IMAP/SMTP hosts are required");
     }
   }
 
@@ -172,7 +182,7 @@ export async function addImapSmtpAccount(input: AddImapSmtpAccountInput) {
     validateInitialFetchLimit(initialFetchLimit);
 
     const email = input.email.trim();
-    if (!email) throw new Error("邮箱地址不能为空");
+    if (!email) throw new ActionError("ACCOUNT_EMAIL_REQUIRED", "Email address is required");
 
     const config = resolveMailboxConfig({
       accountEmail: email,
@@ -209,11 +219,14 @@ export async function updateMailboxAccount(input: UpdateMailboxAccountInput) {
   return runLoggedAction("updateMailboxAccount", async () => {
     const account = await getAccountRecordById(input.id);
     if (!account) {
-      throw new Error("账号不存在");
+      throw new ActionError("ACCOUNT_NOT_FOUND", "Account not found");
     }
 
     if (account.provider !== "qq" && account.provider !== "imap_smtp") {
-      throw new Error("当前账号类型不支持编辑 IMAP/SMTP 凭据");
+      throw new ActionError(
+        "ACCOUNT_MAILBOX_EDIT_UNSUPPORTED",
+        "This account type does not support IMAP/SMTP credential edits"
+      );
     }
 
     const currentCreds = parseAccountCredentials(account);
@@ -373,7 +386,7 @@ export async function updateAccountWriteBackSettings(
   return runLoggedAction("updateAccountWriteBackSettings", async () => {
     const account = await getAccountRecordById(id);
     if (!account) {
-      throw new Error("账号不存在");
+      throw new ActionError("ACCOUNT_NOT_FOUND", "Account not found");
     }
 
     const patch = buildEligibleWriteBackPatch(account, settings);

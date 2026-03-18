@@ -1,7 +1,7 @@
 "use server";
 
 import { count, eq } from "drizzle-orm";
-import { runLoggedAction } from "@/lib/actions";
+import { ActionError, runLoggedAction } from "@/lib/actions";
 import { encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { accounts, oauthApps } from "@/lib/db/schema";
@@ -19,23 +19,28 @@ export interface OAuthAppFormInput {
 
 function normalizeAppId(value: string) {
   const id = value.trim().toLowerCase();
-  if (!id) throw new Error("OAuth App ID 不能为空");
-  if (id === "default") throw new Error("default 保留给环境变量默认应用，不能用于数据库配置");
+  if (!id) throw new ActionError("OAUTH_APP_ID_REQUIRED", "OAuth App ID is required");
+  if (id === "default") {
+    throw new ActionError(
+      "OAUTH_APP_ID_RESERVED",
+      '"default" is reserved for environment-backed default apps'
+    );
+  }
   if (!/^[a-z0-9][a-z0-9_-]{1,62}$/.test(id)) {
-    throw new Error("OAuth App ID 只能包含小写字母、数字、下划线和连字符，且长度为 2-63");
+    throw new ActionError("OAUTH_APP_ID_INVALID", "OAuth App ID format is invalid");
   }
   return id;
 }
 
 function normalizeLabel(value: string) {
   const label = value.trim();
-  if (!label) throw new Error("应用名称不能为空");
+  if (!label) throw new ActionError("OAUTH_APP_LABEL_REQUIRED", "OAuth app label is required");
   return label;
 }
 
 function normalizeClientId(value: string) {
   const clientId = value.trim();
-  if (!clientId) throw new Error("Client ID 不能为空");
+  if (!clientId) throw new ActionError("OAUTH_APP_CLIENT_ID_REQUIRED", "Client ID is required");
   return clientId;
 }
 
@@ -55,7 +60,9 @@ export async function addOAuthApp(input: OAuthAppFormInput) {
     const label = normalizeLabel(input.label);
     const clientId = normalizeClientId(input.clientId);
     const clientSecret = input.clientSecret?.trim();
-    if (!clientSecret) throw new Error("Client Secret 不能为空");
+    if (!clientSecret) {
+      throw new ActionError("OAUTH_APP_CLIENT_SECRET_REQUIRED", "Client Secret is required");
+    }
 
     await db.insert(oauthApps).values({
       id,
@@ -73,7 +80,7 @@ export async function addOAuthApp(input: OAuthAppFormInput) {
 export async function updateOAuthApp(input: OAuthAppFormInput) {
   return runLoggedAction("updateOAuthApp", async () => {
     const existing = await getOAuthAppRecordById(input.id, input.provider);
-    if (!existing) throw new Error("OAuth 应用不存在");
+    if (!existing) throw new ActionError("OAUTH_APP_NOT_FOUND", "OAuth app not found");
 
     const patch: Partial<typeof oauthApps.$inferInsert> = {
       label: normalizeLabel(input.label),
@@ -101,7 +108,7 @@ export async function removeOAuthApp(id: string) {
 
     const usageCount = usageRows[0]?.count ?? 0;
     if (usageCount > 0) {
-      throw new Error(`仍有 ${usageCount} 个账号在使用这个 OAuth 应用，请先重新授权或移除这些账号。`);
+      throw new ActionError("OAUTH_APP_IN_USE", "OAuth app is still in use", String(usageCount));
     }
 
     await db.delete(oauthApps).where(eq(oauthApps.id, normalizedId));

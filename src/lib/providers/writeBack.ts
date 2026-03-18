@@ -1,5 +1,6 @@
 import { parseAccountCredentials, persistProviderCredentialsIfNeeded } from "@/lib/account-providers";
 import type { Account } from "@/lib/db/schema";
+import type { AppLocale } from "@/i18n/locale";
 import { resolveGmailOAuthApp, resolveOutlookOAuthApp } from "@/lib/oauth-apps";
 import { GmailProvider, GMAIL_MODIFY_SCOPE, hasGmailModifyScope } from "./gmail";
 import { OutlookProvider, OUTLOOK_REQUIRED_WRITEBACK_SCOPE, hasOutlookWriteBackScope } from "./outlook";
@@ -51,13 +52,66 @@ function createImapSmtpProviderForAccount(account: Account) {
   return new ImapSmtpProvider(resolveImapSmtpConfigFromAccount(account, creds));
 }
 
-export function getAccountWriteBackAvailability(account: Account): AccountWriteBackAvailability {
+function getMissingGmailWriteBackNotice(locale: AppLocale) {
+  switch (locale) {
+    case "zh-TW":
+      return `需要重新授權以啟用回寫功能（需要 Gmail 修改權限：${GMAIL_MODIFY_SCOPE}）`;
+    case "en":
+      return `Reauthorization is required to enable write-back (requires Gmail modify scope: ${GMAIL_MODIFY_SCOPE}).`;
+    case "ja":
+      return `書き戻しを有効にするには再認可が必要です（Gmail modify scope が必要です: ${GMAIL_MODIFY_SCOPE}）。`;
+    default:
+      return `需要重新授权以启用写回功能（需要 Gmail 修改权限：${GMAIL_MODIFY_SCOPE}）`;
+  }
+}
+
+function getMissingOutlookWriteBackNotice(locale: AppLocale) {
+  switch (locale) {
+    case "zh-TW":
+      return `需要重新授權以啟用回寫功能（需要 Outlook Delegated 權限：${OUTLOOK_REQUIRED_WRITEBACK_SCOPE}）`;
+    case "en":
+      return `Reauthorization is required to enable write-back (requires Outlook delegated permission: ${OUTLOOK_REQUIRED_WRITEBACK_SCOPE}).`;
+    case "ja":
+      return `書き戻しを有効にするには再認可が必要です（Outlook Delegated 権限が必要です: ${OUTLOOK_REQUIRED_WRITEBACK_SCOPE}）。`;
+    default:
+      return `需要重新授权以启用写回功能（需要 Outlook Delegated 权限：${OUTLOOK_REQUIRED_WRITEBACK_SCOPE}）`;
+  }
+}
+
+function getUnsupportedWriteBackNotice(locale: AppLocale, kind: "read" | "star") {
+  if (kind === "read") {
+    switch (locale) {
+      case "zh-TW":
+        return "目前 provider 不支援已讀回寫。";
+      case "en":
+        return "This provider does not support read-status write-back.";
+      case "ja":
+        return "この provider は既読書き戻しに対応していません。";
+      default:
+        return "当前 provider 不支持已读写回。";
+    }
+  }
+
+  switch (locale) {
+    case "zh-TW":
+      return "目前 provider 不支援星號回寫。";
+    case "en":
+      return "This provider does not support star write-back.";
+    case "ja":
+      return "この provider はスター書き戻しに対応していません。";
+    default:
+      return "当前 provider 不支持星标写回。";
+  }
+}
+
+export function getAccountWriteBackAvailability(
+  account: Account,
+  locale: AppLocale = "zh-CN"
+): AccountWriteBackAvailability {
   switch (account.provider) {
     case "gmail": {
       const hasScope = hasGmailModifyScope(getGmailScopes(account));
-      const notice = hasScope
-        ? null
-        : `需要重新授权以启用写回功能（需要 Gmail 修改权限：${GMAIL_MODIFY_SCOPE}）`;
+      const notice = hasScope ? null : getMissingGmailWriteBackNotice(locale);
 
       return {
         canWriteBackRead: hasScope,
@@ -69,9 +123,7 @@ export function getAccountWriteBackAvailability(account: Account): AccountWriteB
 
     case "outlook": {
       const hasScope = hasOutlookWriteBackScope(getOutlookScopes(account));
-      const notice = hasScope
-        ? null
-        : `需要重新授权以启用写回功能（需要 Outlook Delegated 权限：${OUTLOOK_REQUIRED_WRITEBACK_SCOPE}）`;
+      const notice = hasScope ? null : getMissingOutlookWriteBackNotice(locale);
 
       return {
         canWriteBackRead: hasScope,
@@ -94,8 +146,8 @@ export function getAccountWriteBackAvailability(account: Account): AccountWriteB
       return {
         canWriteBackRead: false,
         canWriteBackStar: false,
-        readBackNotice: "当前 provider 不支持已读写回。",
-        starBackNotice: "当前 provider 不支持星标写回。",
+        readBackNotice: getUnsupportedWriteBackNotice(locale, "read"),
+        starBackNotice: getUnsupportedWriteBackNotice(locale, "star"),
       };
   }
 }

@@ -93,4 +93,26 @@ describe("accounts view-models", () => {
     expect(view.canWriteBackRead).toBe(true);
     expect(view.canWriteBackStar).toBe(true);
   });
+
+  it("localizes write-back notices when scopes are missing", () => {
+    const account = createAccount({
+      id: "a2",
+      provider: "gmail",
+      syncReadBack: 1,
+      syncStarBack: 1,
+      credentials: encrypt(JSON.stringify({ scopes: [] })),
+    });
+
+    const [view] = buildAccountSettingsViews({
+      accounts: [account],
+      oauthAppOptions: [],
+      runtimeHealthByAccount: new Map(),
+      locale: "en",
+    });
+
+    expect(view.canWriteBackRead).toBe(false);
+    expect(view.canWriteBackStar).toBe(false);
+    expect(view.readBackNotice).toContain("Reauthorization is required to enable write-back");
+    expect(view.starBackNotice).toContain("Gmail modify scope");
+  });
 });

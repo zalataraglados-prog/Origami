@@ -31,6 +31,7 @@ export default async function AccountsPage({ searchParams }: PageProps) {
     accounts,
     oauthAppOptions,
     runtimeHealthByAccount,
+    locale,
   });
 
   return (

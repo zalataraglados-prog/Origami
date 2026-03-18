@@ -10,6 +10,38 @@ export class ActionError extends Error {
   }
 }
 
+const ACTION_ERROR_PREFIX = "__ORIGAMI_ACTION_ERROR__:";
+
+export function serializeActionError(error: ActionError) {
+  return `${ACTION_ERROR_PREFIX}${JSON.stringify({
+    code: error.code,
+    message: error.message,
+    details: error.details ?? null,
+  })}`;
+}
+
+export function parseSerializedActionError(value?: string | null) {
+  if (!value?.startsWith(ACTION_ERROR_PREFIX)) return null;
+
+  try {
+    const parsed = JSON.parse(value.slice(ACTION_ERROR_PREFIX.length)) as {
+      code?: string;
+      message?: string;
+      details?: string | null;
+    };
+
+    if (!parsed.code) return null;
+
+    return {
+      code: parsed.code,
+      message: parsed.message,
+      details: parsed.details ?? undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; errorCode: string; errorMessage: string; errorDetails?: string };
@@ -17,7 +49,7 @@ export type ActionResult<T> =
 export function asActionError(
   error: unknown,
   fallbackCode = "UNKNOWN",
-  fallbackMessage = "操作失败"
+  fallbackMessage = "Action failed"
 ): ActionError {
   if (error instanceof ActionError) return error;
   if (error instanceof Error) return new ActionError(fallbackCode, error.message);
@@ -30,7 +62,7 @@ export async function runLoggedAction<T>(name: string, fn: () => Promise<T>): Pr
   } catch (error) {
     const normalized = asActionError(error);
     console.error(`[action:${name}] ${normalized.code}: ${normalized.message}`, normalized.details ?? "");
-    throw normalized;
+    throw new Error(serializeActionError(normalized));
   }
 }
 

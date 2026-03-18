@@ -37,3 +37,25 @@ export function buildMailDetailHref(
   const query = params.toString();
   return query ? `/mail/${id}?${query}` : `/mail/${id}`;
 }
+
+export function buildComposeHref(accountId?: string) {
+  const params = new URLSearchParams();
+  if (accountId) params.set("account", accountId);
+
+  const query = params.toString();
+  return query ? `/compose?${query}` : "/compose";
+}
+
+export function buildSentHref(accountId?: string) {
+  const params = new URLSearchParams();
+  if (accountId) params.set("account", accountId);
+
+  const query = params.toString();
+  return query ? `/sent?${query}` : "/sent";
+}
+
+export function buildSentDetailHref(id: string, accountId?: string) {
+  const sentHref = buildSentHref(accountId);
+  if (!accountId) return `/sent/${id}`;
+  return `/sent/${id}${sentHref.slice("/sent".length)}`;
+}

@@ -19,7 +19,7 @@ import type { Account } from "@/lib/db/schema";
 import { getProviderMeta } from "@/config/providers";
 import { ComposeLink } from "@/components/compose/compose-link";
 import { SyncAllButton } from "@/components/sync/sync-button";
-import { buildInboxHref } from "@/lib/inbox-route";
+import { buildInboxHref, buildSentHref } from "@/lib/inbox-route";
 
 interface SidebarProps {
   accounts: Account[];
@@ -76,7 +76,7 @@ export function Sidebar({ accounts, unreadCount, hasSendAccounts }: SidebarProps
 
           {hasSendAccounts && (
             <Button variant={isSentView ? "secondary" : "ghost"} className="w-full justify-start" asChild>
-              <Link href="/sent">
+              <Link href={buildSentHref(activeAccountId)}>
                 <Send className="mr-2 h-4 w-4" />
                 已发送
               </Link>

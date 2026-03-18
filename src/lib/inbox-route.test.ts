@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildInboxHref, buildMailDetailHref } from "./inbox-route";
+import {
+  buildComposeHref,
+  buildInboxHref,
+  buildMailDetailHref,
+  buildSentDetailHref,
+  buildSentHref,
+} from "./inbox-route";
 
 describe("inbox-route", () => {
   it("builds inbox hrefs from active filters", () => {
@@ -24,5 +30,11 @@ describe("inbox-route", () => {
         search: "from:alice",
       })
     ).toBe("/mail/mail_456?account=acc_123&search=from%3Aalice");
+  });
+
+  it("builds compose and sent hrefs with account context", () => {
+    expect(buildComposeHref("acc_123")).toBe("/compose?account=acc_123");
+    expect(buildSentHref("acc_123")).toBe("/sent?account=acc_123");
+    expect(buildSentDetailHref("msg_456", "acc_123")).toBe("/sent/msg_456?account=acc_123");
   });
 });

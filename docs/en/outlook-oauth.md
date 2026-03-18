@@ -4,6 +4,15 @@ This page covers **how to connect Outlook / Microsoft 365 to a production Origam
 
 GitHub sign-in gets you into Origami. Outlook OAuth lets Origami access the mailbox.
 
+## What this page helps you get
+
+By the time you finish this page, you should have:
+
+- a Microsoft Entra app registration for Origami
+- the correct Web redirect URI
+- the required delegated Microsoft Graph permissions
+- a working `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET`
+
 ## Final `.env` values you need
 
 ```txt
@@ -46,6 +55,8 @@ App registration name
 Origami Outlook Production
 ```
 
+> If you create the app around a temporary domain first, remember that the redirect URI has to be updated when you switch to the real production domain.
+
 ## Where you will switch back and forth
 
 ### Place A: Microsoft Entra admin center
@@ -74,6 +85,8 @@ OUTLOOK_CLIENT_SECRET=
 Open:
 
 - <https://entra.microsoft.com>
+
+If you have multiple tenants, switch to the one where this app should live.
 
 ### 2. Register the application
 
@@ -106,7 +119,7 @@ The redirect URI must be exactly:
 https://mail.example.com/api/oauth/outlook
 ```
 
-The most common mistakes are:
+Most common mistakes:
 
 - using the homepage URL instead of the callback
 - forgetting `/api/oauth/outlook`
@@ -123,6 +136,8 @@ Then save:
 
 - Application (client) ID
 - Client secret Value
+
+> Copy the **Value**, not the secret label or ID. The full value is often easiest to capture when it is first created.
 
 ### 5. Add Microsoft Graph permissions
 
@@ -161,6 +176,7 @@ Make sure:
 - the Web redirect URI equals `<APP_URL>/api/oauth/outlook`
 - the client id and secret in `.env` come from this app
 - `Mail.Read`, `Mail.ReadWrite`, and `Mail.Send` are present in Graph permissions
+- admin consent has been granted if your tenant requires it
 
 ## How to verify it works
 
@@ -178,6 +194,11 @@ Expected result:
 - sync works
 - reading works
 - sending works
+
+For better coverage, also test:
+
+1. run one sync and make sure recent messages appear
+2. send a test email to confirm `Mail.Send` is actually working
 
 ## Common errors
 
@@ -203,3 +224,15 @@ Check that these permissions are present:
 ### 4. authorization is blocked inside an organization
 
 That is often a tenant policy or admin consent issue, not an Origami issue.
+
+### 5. the client secret still looks valid, but Microsoft says it is wrong
+
+Make sure you copied the actual **Client secret Value**, not:
+
+- the secret name
+- the secret ID
+- an older secret that has already expired or been rotated
+
+## One-line acceptance test
+
+If you can authorize an Outlook account from `/accounts`, land back in Origami, and that account can both sync and send, this configuration is basically done.

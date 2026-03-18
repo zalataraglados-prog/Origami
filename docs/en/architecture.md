@@ -1,6 +1,6 @@
 # Architecture
 
-This page describes the architecture already implemented in code today.
+This page describes **the architecture already implemented in Origami today**, not a future wish list.
 
 ## Runtime overview
 
@@ -24,23 +24,69 @@ Scheduled Sync
   -> /api/cron/sync
 ```
 
-## Design principles
+If you only want the simplest mental model first, think of Origami as four layers:
 
-### Single-user first
+1. **Web app layer**: Next.js pages, Server Actions, and Route Handlers
+2. **Business logic layer**: onboarding, sync, send, triage, and write-back logic
+3. **Provider adapter layer**: Gmail, Outlook, and IMAP/SMTP integrations
+4. **Storage layer**: Turso for structured data, R2 for attachment objects
 
-Origami is optimized for one operator managing multiple inboxes.
-That keeps authentication, UI, deployment, and debugging much simpler.
+## Core design principles
 
-### Local productivity layer first
+### 1. Single-user first
 
-Done / Archive / Snooze are local states.
-Read / Star are optional write-back states.
+Origami does not introduce a complex user / role / organization model.
+It is optimized for one operator handling multiple mailboxes.
 
-### Metadata-first sync
+### 2. Local productivity layer first
 
-Initial sync keeps inbox loading light by fetching metadata first and hydrating full content later.
+Origami does not try to force every triage field into every provider model.
+That is why:
 
-## Account / provider model
+- Done / Archive / Snooze are local states
+- Read / Star are optional write-back states
+
+### 3. Metadata-first sync
+
+Initial sync prioritizes:
+
+- subject
+- sender
+- snippet
+- receivedAt
+- folder
+
+Bodies and attachments are fetched later when the user actually opens the message.
+
+## Runtime layers
+
+### App Router pages
+
+These handle routing and first-page rendering, such as:
+
+- `/`
+- `/accounts`
+- `/compose`
+- `/sent`
+
+### Server Actions
+
+These handle application-side mutations and reads, such as:
+
+- loading email lists
+- updating triage state
+- sending mail
+- managing accounts and OAuth apps
+
+### Route Handlers
+
+These are only used where Origami needs explicit HTTP endpoints, such as:
+
+- OAuth callbacks
+- attachment download
+- scheduled sync entrypoints
+
+## Account and provider model
 
 Current provider types include:
 
@@ -49,47 +95,71 @@ Current provider types include:
 - `qq`
 - `imap_smtp`
 
-QQ is now effectively an IMAP/SMTP-backed provider with compatibility behavior, not a read-only special case.
+Notes:
+
+- `qq` is no longer just a read-only exception; it is effectively an IMAP/SMTP-backed provider with compatibility behavior
+- `imap_smtp` is the general path for domestic and custom mailbox providers
 
 ## OAuth app resolution
 
-For Gmail and Outlook, Origami supports:
+For Gmail and Outlook, Origami currently supports:
 
 - env-backed default apps
 - DB-backed apps
 
-Resolution flow:
+Resolution order:
 
-1. use `oauth_app_id` when present
+1. if an account has `oauth_app_id`, resolve the DB-managed app first
 2. otherwise fall back to `default`
-3. `default` resolves from env
+3. `default` then resolves from environment variables
+
+This gives you:
+
+- backward compatibility for older accounts
+- isolation for newer accounts
+- a path from env-only setup to DB-managed OAuth apps over time
 
 ## Sync flow
 
 ```text
-sync trigger
+Sync trigger
   -> syncSingleAccount / syncAllAccounts
   -> provider.syncEmails(cursor, { metadataOnly: true })
-  -> persist metadata
-  -> fetch and store binary data only when needed
+  -> persist emails into database
+  -> upload discovered attachments to R2 (if needed)
   -> update cursor + lastSyncedAt
 ```
 
-Important sync semantics:
+Different providers use different cursor semantics:
 
-- provider sync preserves remote `isRead` / `isStarred` whenever possible, so repeated sync does not reset mailbox state back to defaults
+- Gmail: `historyId`
+- Outlook: Graph delta / nextLink
+- IMAP: UID or mailbox state progression
+
+Important intentional behaviors in the sync model:
+
+- Origami preserves remote `isRead` / `isStarred` whenever possible, so repeated sync does not reset mailbox state to defaults
 - Outlook delta `@removed` tombstones are converted into a local `REMOTE_REMOVED` state, so messages deleted remotely or moved out of Inbox stop appearing in the default Inbox list
 - if the same remote message later returns to Inbox, normal sync can make it visible again
 
-## Hydration and runtime state
+## Email detail hydration
 
-Origami explicitly tracks:
+When the user opens a message detail page:
+
+1. Origami reads local data first
+2. if the body is missing, it calls `provider.fetchEmail(remoteId)`
+3. it writes body / HTML / attachment metadata back into the database
+4. if needed, it writes attachment objects to R2
+
+This makes Origami behave more like “fast list first, lazy expansion later” instead of “download the world before showing anything”.
+
+Origami also explicitly tracks runtime state such as:
 
 - body hydration state (`pending` / `hydrated` / `failed`)
 - the latest hydration error
 - read-back / star-back state (`pending` / `success` / `failed`)
 
-Those signals are aggregated on the Accounts page, so you can quickly tell whether an account is failing on body hydration, permission scope, or write-back execution.
+Those signals are aggregated on the Accounts page so you can tell whether an account is failing because of hydration, missing permissions, or write-back execution.
 
 ## Sending flow
 
@@ -99,10 +169,13 @@ Compose form
   -> send action
   -> provider.sendMail()
   -> persist local sent record
+  -> persist sent attachment records
 ```
 
-- Gmail sends MIME raw
-- Outlook sends Graph JSON payloads
+Current behavior:
+
+- Gmail sends RFC 2822 / MIME raw
+- Outlook sends Graph `sendMail` JSON payloads
 - IMAP/SMTP accounts send through SMTP
 
 ## Storage split
@@ -116,7 +189,8 @@ Stores:
 - emails
 - attachment metadata
 - compose uploads
-- sent history metadata
+- sent_messages
+- sent_message_attachments
 
 ### Cloudflare R2
 
@@ -124,12 +198,53 @@ Stores:
 
 - inbound attachment objects
 - temporary compose uploads
-- sent attachment objects
+- sent history attachment objects
+
+## Security boundaries
+
+- credentials are encrypted with **AES-256-GCM** before being stored
+- OAuth client secrets stay server-side only
+- attachment downloads go through the server, so raw object keys are not exposed to the browser
+- `CRON_SECRET` protects the sync endpoint
+- GitHub owner sessions protect app access
+- mailbox OAuth callback state is signed and bound to the active session
+
+## If you are reading code, what should you start with?
+
+### To understand sign-in
+
+Start with:
+
+- GitHub OAuth routes and session logic
+- `src/lib/session*`
+- `src/lib/secrets*`
+
+### To understand email sync
+
+Start with:
+
+- sync actions and routes
+- `src/lib/services/sync-service.ts`
+- `src/lib/providers/*`
+
+### To understand sending and attachments
+
+Start with:
+
+- compose page and send action
+- provider `sendMail` implementations
+- R2 storage logic
 
 ## Deliberate non-goals for now
 
-- multi-user roles / workspaces
+These are intentionally out of scope for the current product shape:
+
+- multi-user collaboration roles
 - provider write-back for every triage field
 - full thread-aware reply / forward
 - remote draft sync
 - complete mailbox mirroring
+
+Those are valuable features, but they also raise complexity a lot. Origami is currently optimized for one thing first:
+
+> in a single-user setup, the core path should stay fast, stable, and maintainable.

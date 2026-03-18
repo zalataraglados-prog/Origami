@@ -1,8 +1,17 @@
 # Cloudflare R2 / Bucket 詳細設定
 
-このページでは **本番環境の Origami 用 添付ファイル保存先を Cloudflare R2 で設定する方法** を扱います。
+このページでは **本番環境の Origami 用添付ストレージを Cloudflare R2 で設定する方法** を扱います。
 
-Origami は添付ファイルを DB ではなく Cloudflare R2 に保存します。
+Origami は添付ファイルを DB ではなく Cloudflare R2 に保存します。添付は大きなバイナリオブジェクトだからです。
+
+## このページで最終的に揃うもの
+
+このページを終えるころには、次を確認できるはずです。
+
+- 正しい Cloudflare Account ID
+- 作成済み R2 bucket
+- その bucket にアクセスできる R2 API key
+- `.env` に入れる完全な `R2_*` 設定
 
 ## 最終的に `.env` に入れる値
 
@@ -60,7 +69,13 @@ R2_ENDPOINT=
 
 - <https://dash.cloudflare.com/>
 
-ログイン後、対象の Cloudflare account に切り替えてください。
+ログイン後、必ず対象の Cloudflare account に切り替えてください。
+
+複数 account がある場合の典型的な事故は、次を混ぜることです。
+
+- A account の Account ID
+- B account の key
+- C account の bucket
 
 ### 2. Account ID を確認する
 
@@ -86,7 +101,8 @@ origami-attachments-prod
 重要なのは：
 
 1. bucket が作成されたこと
-2. 正確な bucket 名を保持すること
+2. 正確な bucket 名を控えること
+3. その bucket が今の account 配下にあること
 
 ### 4. R2 API token を作成する
 
@@ -96,7 +112,7 @@ Origami 用の最小推奨権限：
 
 - **Object Read & Write**
 
-scope は対象 bucket を含めてください。
+scope は対象 bucket のみに絞るのが無難です。
 
 ### 5. Access Key と Secret Access Key を保存する
 
@@ -104,6 +120,8 @@ Cloudflare が表示する 2 つの値をすぐにコピーします。
 
 - **Access Key ID**
 - **Secret Access Key**
+
+> Secret Access Key は作成時に控えるのが一番楽です。失くしたら新しい key を作り直す方が早いことが多いです。
 
 ## `.env` に戻って記入する
 
@@ -118,11 +136,12 @@ R2_ENDPOINT=https://1234567890abcdef1234567890abcdef.r2.cloudflarestorage.com
 ## テスト前の確認
 
 - `R2_ACCOUNT_ID` はコピーした Account ID か
-- `R2_ENDPOINT` は `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` か
+- `R2_ENDPOINT` は `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` と一致しているか
 - `R2_BUCKET_NAME` は作成した bucket 名と完全一致しているか
 - access key と secret を入れ替えていないか
 - token に **Object Read & Write** があるか
 - token scope に対象 bucket が含まれているか
+- すべて同じ Cloudflare account 由来か
 
 ## 動作確認方法
 
@@ -138,6 +157,11 @@ R2_ENDPOINT=https://1234567890abcdef1234567890abcdef.r2.cloudflarestorage.com
 - アップロード成功
 - 送信または保存成功
 - ダウンロード成功
+
+より確実に見るなら、次も試すと安心です。
+
+1. 新しい添付のアップロードで書き込みを確認する
+2. 既存添付のダウンロードで読み取りを確認する
 
 ## よくあるエラー
 
@@ -163,6 +187,18 @@ https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 
 `.env` の `R2_BUCKET_NAME` と Cloudflare 上の bucket 名が完全一致しているか確認してください。
 
-### 5. 別アカウントの Account ID を使っている
+### 5. 別 account の Account ID を使っている
 
 複数 account がある場合によく起きる不整合です。
+
+### 6. アップロードは通るのにダウンロードが失敗する
+
+bucket 全体が壊れているのではなく、設定のどこかがずれているケースが多いです。次を再確認してください。
+
+- `R2_ENDPOINT`
+- `R2_BUCKET_NAME`
+- 実際にデプロイで読み込まれている環境変数
+
+## 一言での合格ライン
+
+Origami で添付をアップロードでき、送信または保存でき、その後同じ添付をダウンロードできれば、この設定はほぼ完了です。

@@ -4,6 +4,16 @@ This page covers one thing only: **how to configure GitHub sign-in for a product
 
 It is for signing in to Origami itself, not for connecting Gmail or Outlook accounts.
 
+## What this page helps you get
+
+By the time you finish this page, you should have:
+
+- a GitHub OAuth App dedicated to Origami sign-in
+- the correct **Homepage URL**
+- the correct **Authorization callback URL**
+- a working `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+- a clear `GITHUB_ALLOWED_LOGIN`
+
 ## Final `.env` values you need
 
 ```txt
@@ -36,6 +46,8 @@ your-github-login
 ```
 
 > `mail.example.com` is only an example. Replace it with your real production domain everywhere.
+>
+> Do not create your real production OAuth App around a temporary `*.vercel.app` domain unless you are prepared to update everything later.
 
 ## Where you will switch back and forth
 
@@ -121,6 +133,8 @@ Then copy:
 1. **Client ID**
 2. **Client Secret**
 
+> The full Client Secret is often only shown clearly when it is created. Copy it immediately.
+
 ## Now go back to `.env`
 
 ```txt
@@ -155,7 +169,7 @@ After deployment, open:
 https://mail.example.com/login
 ```
 
-The expected flow is:
+Expected flow:
 
 1. click GitHub sign-in
 2. go to the GitHub consent page
@@ -163,6 +177,12 @@ The expected flow is:
 4. return to Origami
 5. land on `/setup` on first install
 6. finish setup and enter the app
+
+For extra confidence, also test:
+
+1. sign out and sign back in again
+2. confirm the owner account can still enter normally
+3. confirm unrelated GitHub accounts cannot accidentally claim the instance
 
 ## Common errors
 
@@ -201,3 +221,15 @@ The only correct callback is:
 ```txt
 <APP_URL>/api/auth/github/callback
 ```
+
+### 4. sign-in broke after you changed the production domain
+
+That is usually not an Origami bug. It usually means the GitHub OAuth App still points at the old domain.
+
+### 5. the wrong owner claimed the instance on first install
+
+That is usually not an OAuth App issue either. It means the first initialization flow was completed with the wrong GitHub account, and you typically need to clear the install record before re-initializing.
+
+## One-line acceptance test
+
+If the intended GitHub account can sign into Origami and land in `/setup` or the app, while other accounts cannot accidentally enter, this configuration is basically done.

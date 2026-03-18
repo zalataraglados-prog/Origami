@@ -2,6 +2,15 @@
 
 This page covers one thing only: **how to prepare a production Turso database for Origami**.
 
+## What this page helps you get
+
+By the time you finish this page, you should have:
+
+- a created Turso database
+- the correct `libsql://...` database URL
+- an auth token that actually belongs to that database
+- a working database configuration ready for `.env`
+
 ## Final `.env` values you need
 
 ```txt
@@ -78,7 +87,13 @@ Recommended database name:
 origami-prod
 ```
 
-For the location, choose a region reasonably close to where you deploy Origami.
+For location, choose a region reasonably close to where you deploy Origami.
+
+The most important part here is not picking the perfect region. It is simply making sure:
+
+1. the database was actually created
+2. you remember the database name
+3. you know this is the production database, not a test one
 
 ### 4. Install the Turso CLI
 
@@ -100,11 +115,21 @@ Then run:
 turso
 ```
 
+If the CLI shows help output, installation is working.
+
 ### 5. Sign in through the CLI
 
 ```bash
 turso auth login
 ```
+
+Once that is done, it is a good idea to run:
+
+```bash
+turso db list
+```
+
+That confirms the CLI can actually see the database you just created.
 
 ### 6. Get the database URL
 
@@ -123,6 +148,8 @@ Copy it into:
 ```txt
 TURSO_DATABASE_URL=libsql://origami-prod-xxxxx.turso.io
 ```
+
+> Do not hand-write this URL from memory or from someone else’s example. Copy the CLI output directly.
 
 ### 7. Create the database token
 
@@ -150,7 +177,8 @@ Make sure:
 - the database exists in the Turso dashboard
 - `TURSO_DATABASE_URL` came directly from `turso db show origami-prod --url`
 - `TURSO_AUTH_TOKEN` came directly from `turso db tokens create origami-prod`
-- there are no accidental spaces or quotes in `.env`
+- there are no accidental spaces, quotes, or line breaks in `.env`
+- the values belong to your production DB, not a development DB
 
 ## How to verify it works
 
@@ -161,6 +189,11 @@ npm run db:setup
 ```
 
 If the connection is correct, this should complete successfully.
+
+For extra confidence, also confirm:
+
+1. `db:setup` really ran against the intended database
+2. the first deployment setup flow can complete afterward
 
 ## Common errors
 
@@ -194,3 +227,15 @@ Origami needs both:
 
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`
+
+### 5. development and production databases got mixed up
+
+This is one of the easiest ways to confuse yourself later. If you have both `origami-dev` and `origami-prod`, double-check:
+
+- which one is in `.env`
+- which one the deployment is using
+- which one `db:setup` actually ran against
+
+## One-line acceptance test
+
+If `npm run db:setup` succeeds and the first installation flow works afterward, this configuration is basically done.

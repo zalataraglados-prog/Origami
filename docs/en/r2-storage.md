@@ -2,7 +2,16 @@
 
 This page covers one thing only: **how to configure attachment storage for a production Origami instance**.
 
-Origami stores attachments in Cloudflare R2 instead of the database.
+Origami stores attachments in Cloudflare R2 instead of the database because attachment binaries are large objects.
+
+## What this page helps you get
+
+By the time you finish this page, you should have:
+
+- the correct Cloudflare Account ID
+- a created R2 bucket
+- an R2 API key pair that can access that bucket
+- a complete `R2_*` configuration ready for `.env`
 
 ## Final `.env` values you need
 
@@ -64,6 +73,12 @@ Open:
 
 Make sure you are in the correct Cloudflare account.
 
+If you have multiple Cloudflare accounts, this matters a lot. The classic mistake is mixing:
+
+- the Account ID from account A
+- the key from account B
+- the bucket from account C
+
 ### 2. Find the Account ID
 
 Locate:
@@ -98,6 +113,7 @@ The important part here is simply:
 
 1. the bucket was created successfully
 2. you keep the exact bucket name
+3. you confirm it lives under the current Cloudflare account
 
 ### 4. Create the R2 API token
 
@@ -109,7 +125,7 @@ Create a key pair for the bucket. The minimum recommended permission set for Ori
 
 - **Object Read & Write**
 
-The scope should include the target bucket.
+The scope should include the target bucket only.
 
 ### 5. Save the Access Key and Secret Access Key
 
@@ -119,6 +135,8 @@ Cloudflare will show:
 - **Secret Access Key**
 
 Copy both immediately.
+
+> The Secret Access Key is easiest to capture when it is first created. If you lose it, the fastest fix is often to create a new key pair.
 
 ## Now go back to `.env`
 
@@ -140,6 +158,7 @@ Make sure:
 - the access key and secret were not swapped
 - the token includes **Object Read & Write**
 - the token scope includes the target bucket
+- all values come from the same Cloudflare account
 
 ## How to verify it works
 
@@ -155,6 +174,11 @@ Expected result:
 - upload succeeds
 - send or save succeeds
 - attachment download works
+
+For a fuller check, also test both directions:
+
+1. upload a brand-new attachment to confirm writes work
+2. download an existing attachment to confirm reads work
 
 ## Common errors
 
@@ -174,12 +198,24 @@ Check:
 
 ### 3. the token lacks object read/write permission
 
-If the permission is too small, attachment upload usually fails.
+If the permission is too narrow, attachment upload usually fails.
 
 ### 4. the bucket name is wrong
 
-Check that `R2_BUCKET_NAME` exactly matches the bucket name shown in Cloudflare.
+Check that `R2_BUCKET_NAME` exactly matches the bucket shown in Cloudflare.
 
 ### 5. the Account ID belongs to a different Cloudflare account
 
 This is a classic mismatch when multiple accounts exist.
+
+### 6. upload works, but download fails
+
+That often means the bucket is not completely unreachable, but some part of the object-storage chain is still misaligned. Re-check:
+
+- `R2_ENDPOINT`
+- `R2_BUCKET_NAME`
+- the actual environment loaded by the running deployment
+
+## One-line acceptance test
+
+If you can upload an attachment, complete the send or save flow, and later download the same attachment back from Origami, this configuration is basically done.

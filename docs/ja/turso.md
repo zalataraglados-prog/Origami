@@ -2,6 +2,15 @@
 
 このページでは **本番環境の Origami 用 Turso データベースを準備する方法** だけを扱います。
 
+## このページで最終的に揃うもの
+
+このページを終えるころには、次を確認できるはずです。
+
+- 作成済み Turso データベース
+- 正しい `libsql://...` データベース URL
+- その DB に対応する auth token
+- `.env` に入れる DB 接続設定
+
 ## 最終的に `.env` に入れる値
 
 ```txt
@@ -60,7 +69,7 @@ TURSO_AUTH_TOKEN=...
 
 ### 2. プランを確認する
 
-個人用の自前運用なら、まずはその時点で利用可能な無料枠から始めるので十分なことが多いです。内容は変わる可能性があるので、必ず Pricing を確認してください。
+個人用 self-hosting なら、まずはその時点で利用可能な無料枠から始めるので十分なことが多いです。内容は変わる可能性があるので、必ず Pricing を確認してください。
 
 - <https://turso.tech/pricing>
 
@@ -75,6 +84,12 @@ origami-prod
 ```
 
 Location は、Origami を動かすリージョンに比較的近い場所を選べば十分です。
+
+重要なのは最適なリージョン選択よりも、次を確実にすることです。
+
+1. データベースが実際に作成されたこと
+2. 名前を把握していること
+3. それが本番 DB であってテスト DB ではないこと
 
 ### 4. Turso CLI をインストールする
 
@@ -96,11 +111,21 @@ curl -sSfL https://get.tur.so/install.sh | bash
 turso
 ```
 
+help が出れば CLI は正しく入っています。
+
 ### 5. CLI でログインする
 
 ```bash
 turso auth login
 ```
+
+完了後、次も一度試すと安心です。
+
+```bash
+turso db list
+```
+
+CLI から作成した DB が見えることを確認できます。
 
 ### 6. データベース URL を取得する
 
@@ -119,6 +144,8 @@ libsql://origami-prod-xxxxx.turso.io
 ```txt
 TURSO_DATABASE_URL=libsql://origami-prod-xxxxx.turso.io
 ```
+
+> URL は手打ちで推測しないでください。CLI の出力をそのまま使うのが最も安全です。
 
 ### 7. データベース token を作成する
 
@@ -144,7 +171,8 @@ TURSO_AUTH_TOKEN=your-turso-auth-token
 - Turso ダッシュボード上で DB が作成済みか
 - `TURSO_DATABASE_URL` は `turso db show origami-prod --url` の結果か
 - `TURSO_AUTH_TOKEN` は `turso db tokens create origami-prod` の結果か
-- `.env` に余計な空白や引用符が入っていないか
+- `.env` に余計な空白や引用符、改行が入っていないか
+- 開発 DB ではなく本番 DB の値を入れているか
 
 ## 動作確認方法
 
@@ -155,6 +183,11 @@ npm run db:setup
 ```
 
 接続が正しければ正常終了するはずです。
+
+さらに安心したいなら、次も確認してください。
+
+1. `db:setup` が本当に想定 DB に対して実行されたか
+2. その後の初回インストールフローも通るか
 
 ## よくあるエラー
 
@@ -188,3 +221,15 @@ Origami には次の両方が必要です。
 
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`
+
+### 5. 開発 DB と本番 DB を混ぜた
+
+`origami-dev` と `origami-prod` のように複数 DB がある場合は、次を必ず再確認してください。
+
+- `.env` に入れたのはどちらか
+- 実際のデプロイが使っているのはどちらか
+- `db:setup` をどちらに対して実行したか
+
+## 一言での合格ライン
+
+`npm run db:setup` が成功し、その後の初回インストールフローも通るなら、この設定はほぼ完了です。

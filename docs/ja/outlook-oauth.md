@@ -4,6 +4,15 @@
 
 GitHub ログインは Origami に入るための設定です。Outlook OAuth はメールボックスへのアクセス設定です。
 
+## このページで最終的に揃うもの
+
+このページを終えるころには、次を確認できるはずです。
+
+- Origami 用の Microsoft Entra app registration
+- 正しい Web Redirect URI
+- 必要な Microsoft Graph delegated permissions
+- `.env` に入れる `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET`
+
 ## 最終的に `.env` に入れる値
 
 ```txt
@@ -45,6 +54,8 @@ https://mail.example.com/api/oauth/outlook
 App registration 名
 Origami Outlook Production
 ```
+
+> 最初に仮ドメインで app を作った場合、正式ドメインに切り替えるときは Redirect URI も必ず更新してください。
 
 ## 行き来する場所
 
@@ -89,7 +100,7 @@ OUTLOOK_CLIENT_SECRET=
 Origami Outlook Production
 ```
 
-多くの Outlook / Microsoft アカウントを扱うなら、組織アカウントと個人 Microsoft アカウントの両方を含む Supported account types を選ぶのが無難です。
+幅広い Outlook / Microsoft アカウントで使いたいなら、組織アカウントと個人 Microsoft アカウントの両方を含む supported account types を選ぶのが安全です。
 
 ### 3. Web Redirect URI を追加する
 
@@ -123,6 +134,8 @@ https://mail.example.com/api/oauth/outlook
 
 - Application (client) ID
 - Client secret Value
+
+> コピーするのは **Value** です。secret 名や ID ではありません。
 
 ### 5. Microsoft Graph 権限を追加する
 
@@ -159,6 +172,7 @@ OUTLOOK_CLIENT_SECRET=your-microsoft-oauth-client-secret
 - Web redirect URI は `<APP_URL>/api/oauth/outlook` と一致しているか
 - client id / secret はこのアプリのものか
 - `Mail.Read`、`Mail.ReadWrite`、`Mail.Send` が権限に含まれているか
+- tenant 要件がある場合は admin consent を済ませたか
 
 ## 動作確認方法
 
@@ -176,6 +190,11 @@ OUTLOOK_CLIENT_SECRET=your-microsoft-oauth-client-secret
 - 同期できる
 - 閲覧できる
 - 送信できる
+
+余裕があれば、さらに次も確認してください。
+
+1. 一度同期して最近のメールが見えるか確認する
+2. テスト送信を行い、`Mail.Send` が本当に機能しているか確認する
 
 ## よくあるエラー
 
@@ -200,4 +219,12 @@ OUTLOOK_CLIENT_SECRET=your-microsoft-oauth-client-secret
 
 ### 4. 組織内で認可が止まる
 
-テナントポリシーまたは admin consent の問題であることが多いです。
+tenant policy または admin consent の問題であることが多く、Origami の実装ミスとは限りません。
+
+### 5. secret を作ったはずなのに invalid と言われる
+
+`.env` に入れたのが本当に **Client secret Value** か確認してください。secret 名、ID、期限切れの旧値ではだめです。
+
+## 一言での合格ライン
+
+`/accounts` から Outlook 認可を完了でき、Origami に戻った後そのアカウントで同期も送信もできれば、この設定はほぼ完了です。

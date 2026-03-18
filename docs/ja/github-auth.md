@@ -4,6 +4,16 @@
 
 これは Origami 自体へのログイン設定であり、Gmail / Outlook のメール接続設定ではありません。
 
+## このページで最終的に揃うもの
+
+このページを終えるころには、次を確認できるはずです。
+
+- Origami ログイン専用の GitHub OAuth App
+- 正しい **Homepage URL**
+- 正しい **Authorization callback URL**
+- `.env` に入れる `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+- 明確な `GITHUB_ALLOWED_LOGIN`
+
 ## 最終的に `.env` に入れる値
 
 ```txt
@@ -34,6 +44,10 @@ https://mail.example.com/api/auth/github/callback
 許可する GitHub login
 your-github-login
 ```
+
+> `mail.example.com` は例です。必ず自分の本番ドメインに置き換えてください。
+>
+> 最初から一時的な `*.vercel.app` ドメインで本番用 OAuth App を作るのはおすすめしません。後で正式ドメインに切り替えるなら、GitHub 側も更新が必要になります。
 
 ## 行き来する場所
 
@@ -100,7 +114,7 @@ Single-user inbox login for Origami
 https://mail.example.com/api/auth/github/callback
 ```
 
-ホーム URL をそのまま入れてしまうのが最も多いミスです。正しい値には `/api/auth/github/callback` が必須です。
+最も多いミスは、ホーム URL をそのまま入れてしまうことです。正しい値には `/api/auth/github/callback` が必要です。
 
 ### 3. アプリを登録する
 
@@ -116,6 +130,8 @@ https://mail.example.com/api/auth/github/callback
 
 1. **Client ID**
 2. **Client Secret**
+
+> Client Secret は作成時が一番取りやすいです。閉じてから慌てないよう、その場で控えてください。
 
 ## `.env` に戻って記入する
 
@@ -158,6 +174,12 @@ https://mail.example.com/login
 5. 初回は `/setup` に進む
 6. セットアップ完了後にアプリへ入れる
 
+余裕があれば、さらに次も確認すると安心です。
+
+1. 一度ログアウトして再度ログインできるか
+2. owner アカウントで問題なく入り直せるか
+3. 関係ない GitHub アカウントが誤って入れないか
+
 ## よくあるエラー
 
 ### 1. GitHub ログイン直後に callback error
@@ -191,3 +213,15 @@ Authorization callback URL=...
 ```txt
 <APP_URL>/api/auth/github/callback
 ```
+
+### 4. 本番ドメイン変更後に急に壊れた
+
+Origami 側ではなく、GitHub OAuth App に古いドメインが残っていることが多いです。
+
+### 5. 初回セットアップで間違った owner を確定してしまった
+
+これは OAuth App 自体の問題ではなく、初期化を誤った GitHub アカウントで完了したケースです。通常は install 記録を片付けてやり直す必要があります。
+
+## 一言での合格ライン
+
+指定した GitHub アカウントで Origami に正常ログインでき、別アカウントが誤って入れなければ、この設定はほぼ完了です。

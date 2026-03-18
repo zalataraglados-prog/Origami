@@ -86,7 +86,7 @@ export default defineConfig({
           { text: "首頁", link: "/zh-tw/" },
           { text: "快速開始", link: "/zh-tw/quick-start" },
           { text: "部署", link: "/zh-tw/deployment" },
-          { text: "詳細設定", link: "/zh-tw/turso" },
+          { text: "平台設定", link: "/zh-tw/turso" },
           { text: "開發", link: "/zh-tw/development" },
           { text: "架構", link: "/zh-tw/architecture" },
           { text: "FAQ", link: "/zh-tw/faq" },
@@ -103,7 +103,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "詳細設定",
+            text: "第三方平台設定",
             items: [
               { text: "Turso 資料庫", link: "/zh-tw/turso" },
               { text: "Cloudflare R2 / Bucket", link: "/zh-tw/r2-storage" },
@@ -155,7 +155,7 @@ export default defineConfig({
           { text: "Home", link: "/en/" },
           { text: "Quick Start", link: "/en/quick-start" },
           { text: "Deployment", link: "/en/deployment" },
-          { text: "Detailed Setup", link: "/en/turso" },
+          { text: "Platform Setup", link: "/en/turso" },
           { text: "Development", link: "/en/development" },
           { text: "Architecture", link: "/en/architecture" },
           { text: "FAQ", link: "/en/faq" },
@@ -172,7 +172,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "Detailed Setup",
+            text: "Third-Party Setup",
             items: [
               { text: "Turso Database", link: "/en/turso" },
               { text: "Cloudflare R2 / Bucket", link: "/en/r2-storage" },
@@ -224,7 +224,7 @@ export default defineConfig({
           { text: "ホーム", link: "/ja/" },
           { text: "クイックスタート", link: "/ja/quick-start" },
           { text: "デプロイ", link: "/ja/deployment" },
-          { text: "詳細設定", link: "/ja/turso" },
+          { text: "外部サービス設定", link: "/ja/turso" },
           { text: "開発", link: "/ja/development" },
           { text: "アーキテクチャ", link: "/ja/architecture" },
           { text: "FAQ", link: "/ja/faq" },
@@ -241,7 +241,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "詳細設定",
+            text: "外部サービス設定",
             items: [
               { text: "Turso データベース", link: "/ja/turso" },
               { text: "Cloudflare R2 / Bucket", link: "/ja/r2-storage" },

@@ -4,6 +4,16 @@ This page covers **how to connect Gmail to a production Origami instance**.
 
 GitHub sign-in gets you into Origami. Gmail OAuth lets Origami access your Gmail mailbox.
 
+## What this page helps you get
+
+By the time you finish this page, you should have:
+
+- a dedicated Google Cloud project for Origami
+- Gmail API enabled
+- a configured OAuth consent screen
+- a **Web application** OAuth client
+- a working `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET`
+
 ## Final `.env` values you need
 
 ```txt
@@ -45,6 +55,8 @@ Consent Screen App name
 Origami Gmail Production
 ```
 
+> Do not treat a temporary preview domain as the final redirect URI for production. If the domain changes later, the Google OAuth client must be updated too.
+
 ## Where you will switch back and forth
 
 ### Place A: Google Cloud Console
@@ -74,6 +86,8 @@ Open:
 
 - <https://console.cloud.google.com/>
 
+Make sure you are in the Google account that should own this configuration.
+
 ### 2. Create or switch to a dedicated project
 
 Recommended project name:
@@ -94,7 +108,7 @@ Click:
 
 ### 4. Configure the OAuth consent screen
 
-Typical path:
+Navigation labels may move slightly over time, but you will usually see something like:
 
 1. **Google Auth platform**
 2. **Branding**
@@ -107,7 +121,7 @@ Recommended values:
 - **User support email**: your email
 - **Developer contact email**: your email
 
-For a self-hosted personal instance, `External` is usually the right audience, and the Google account you will use should be added to **Test users**.
+For a self-hosted personal instance, `External` is usually the right audience, and the Google account you will actually use should be added to **Test users**.
 
 ### 5. Create the OAuth Client ID
 
@@ -116,13 +130,15 @@ Choose:
 - **OAuth client ID**
 - app type: **Web application**
 
+Do not use **Desktop app** here. Origami is a server-side web app.
+
 The redirect URI must be exactly:
 
 ```txt
 https://mail.example.com/api/oauth/gmail
 ```
 
-The most common mistakes are:
+Most common mistakes:
 
 - using the homepage URL instead of the callback
 - forgetting `/api/oauth/gmail`
@@ -158,7 +174,7 @@ After deployment:
 1. sign in to Origami
 2. open `/accounts`
 3. choose to add a Gmail account
-4. approve the Google consent flow
+4. complete the Google consent flow
 5. return to Origami
 
 Expected result:
@@ -167,6 +183,11 @@ Expected result:
 - sync works
 - reading works
 - sending works
+
+For better coverage, also test:
+
+1. run one sync and confirm mail really appears
+2. send a small test email, ideally with a tiny attachment
 
 ## Common errors
 
@@ -189,9 +210,23 @@ Check:
 - the audience is `External`
 - the Google account is included in **Test users**
 
+For a self-hosted personal instance, these warnings often just mean the app has not gone through a public verification process yet.
+
 ### 4. authorization succeeds, but sending fails with permission errors
 
 Check the required scopes:
 
 - `gmail.send`
 - `gmail.modify`
+
+### 5. the setup used to work before the domain changed
+
+Check these again together:
+
+- `NEXT_PUBLIC_APP_URL`
+- the Google OAuth client redirect URI
+- the actual production domain you are visiting
+
+## One-line acceptance test
+
+If you can authorize a Gmail account from `/accounts`, land back in Origami, and that account can both sync and send, this configuration is basically done.

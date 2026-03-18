@@ -4,6 +4,16 @@
 
 GitHub ログインは Origami に入るための設定です。Gmail OAuth は Gmail メールボックスへのアクセスを許可する設定です。
 
+## このページで最終的に揃うもの
+
+このページを終えるころには、次を確認できるはずです。
+
+- Origami 専用の Google Cloud Project
+- 有効化済み Gmail API
+- 設定済み OAuth consent screen
+- 正しい **Web application** OAuth client
+- `.env` に入れる `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET`
+
 ## 最終的に `.env` に入れる値
 
 ```txt
@@ -45,6 +55,8 @@ Consent Screen App 名
 Origami Gmail Production
 ```
 
+> 一時的な preview ドメインを本番 Redirect URI のつもりで使わない方が安全です。後で正式ドメインへ切り替えたら、Google 側も更新が必要になります。
+
 ## 行き来する場所
 
 ### 場所 A: Google Cloud Console
@@ -72,6 +84,8 @@ GMAIL_CLIENT_SECRET=
 
 - <https://console.cloud.google.com/>
 
+この設定を管理する Google アカウントでログインしているか確認してください。
+
 ### 2. 専用 Project を作成または選択する
 
 推奨プロジェクト名：
@@ -92,7 +106,7 @@ Origami Gmail Production
 
 ### 4. OAuth consent screen を設定する
 
-よくある導線：
+Google 側のメニュー名は多少変わることがありますが、通常は次のような流れです。
 
 1. **Google Auth platform**
 2. **Branding**
@@ -105,12 +119,16 @@ Origami Gmail Production
 - **User support email**: あなたのメールアドレス
 - **Developer contact email**: あなたのメールアドレス
 
-自分用の自前運用なら、通常は `External` を選び、実際に使う Google アカウントを **Test users** に追加します。
+個人用途の self-hosting なら、通常は `External` を選び、実際に使う Google アカウントを **Test users** に追加します。
 
 ### 5. OAuth Client ID を作成する
 
+選択するもの：
+
 - **OAuth client ID**
 - アプリ種別：**Web application**
+
+**Desktop app** は選ばないでください。Origami はサーバーサイド Web アプリです。
 
 Redirect URI は必ず次です。
 
@@ -162,6 +180,11 @@ GMAIL_CLIENT_SECRET=your-google-oauth-client-secret
 - 閲覧できる
 - 送信できる
 
+余裕があれば、さらに次も確認してください。
+
+1. 一度同期して、本当にメール一覧が出るか確認する
+2. 小さなテストメールを 1 通送り、できれば小さい添付も試す
+
 ## よくあるエラー
 
 ### 1. `redirect_uri_mismatch`
@@ -183,9 +206,23 @@ GMAIL_CLIENT_SECRET=your-google-oauth-client-secret
 - Audience は `External` か
 - 利用する Google アカウントが **Test users** に入っているか
 
+個人用 self-hosting では、これは「公開審査を通していない」だけで、Origami 側の設定ミスではないことも多いです。
+
 ### 4. 認可成功後に送信権限エラーが出る
 
 必要な scopes を確認します。
 
 - `gmail.send`
 - `gmail.modify`
+
+### 5. ドメイン変更後に急に動かなくなった
+
+次をまとめて見直してください。
+
+- `NEXT_PUBLIC_APP_URL`
+- Google OAuth client の Redirect URI
+- 実際にアクセスしている本番ドメイン
+
+## 一言での合格ライン
+
+`/accounts` から Gmail 認可を完了でき、Origami に戻った後そのアカウントで同期も送信もできれば、この設定はほぼ完了です。

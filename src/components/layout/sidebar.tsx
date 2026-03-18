@@ -19,7 +19,8 @@ import type { Account } from "@/lib/db/schema";
 import { getProviderMeta } from "@/config/providers";
 import { ComposeLink } from "@/components/compose/compose-link";
 import { SyncAllButton } from "@/components/sync/sync-button";
-import { buildInboxHref, buildSentHref } from "@/lib/inbox-route";
+import { buildInboxHref } from "@/lib/inbox-route";
+import { resolveSidebarNavigationState } from "./sidebar-state";
 
 interface SidebarProps {
   accounts: Account[];
@@ -30,11 +31,12 @@ interface SidebarProps {
 export function Sidebar({ accounts, unreadCount, hasSendAccounts }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeAccountId = searchParams.get("account") ?? undefined;
-  const isStarredView = pathname === "/" && searchParams.get("starred") === "1";
-  const isInboxView = pathname === "/" && !activeAccountId && !isStarredView;
-  const isSentView = pathname === "/sent" || pathname.startsWith("/sent/");
-  const isAccountsView = pathname === "/accounts";
+  const navigation = resolveSidebarNavigationState({
+    pathname,
+    accountId: searchParams.get("account") ?? undefined,
+    starred: searchParams.get("starred") === "1",
+    hasSendAccounts,
+  });
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-muted/30">
@@ -52,7 +54,7 @@ export function Sidebar({ accounts, unreadCount, hasSendAccounts }: SidebarProps
       <ScrollArea className="flex-1 px-3 py-2">
         <div className="space-y-1">
           <Button
-            variant={isInboxView ? "secondary" : "ghost"}
+            variant={navigation.isInboxView ? "secondary" : "ghost"}
             className="w-full justify-start"
             asChild
           >
@@ -67,16 +69,16 @@ export function Sidebar({ accounts, unreadCount, hasSendAccounts }: SidebarProps
             </Link>
           </Button>
 
-          <Button variant={isStarredView ? "secondary" : "ghost"} className="w-full justify-start" asChild>
+          <Button variant={navigation.isStarredView ? "secondary" : "ghost"} className="w-full justify-start" asChild>
             <Link href={buildInboxHref({ starred: true })}>
               <Star className="mr-2 h-4 w-4" />
               已标星
             </Link>
           </Button>
 
-          {hasSendAccounts && (
-            <Button variant={isSentView ? "secondary" : "ghost"} className="w-full justify-start" asChild>
-              <Link href={buildSentHref(activeAccountId)}>
+          {hasSendAccounts && navigation.sentHref && (
+            <Button variant={navigation.isSentView ? "secondary" : "ghost"} className="w-full justify-start" asChild>
+              <Link href={navigation.sentHref}>
                 <Send className="mr-2 h-4 w-4" />
                 已发送
               </Link>
@@ -93,7 +95,7 @@ export function Sidebar({ accounts, unreadCount, hasSendAccounts }: SidebarProps
           {accounts.map((account) => (
             <Button
               key={account.id}
-              variant={activeAccountId === account.id ? "secondary" : "ghost"}
+              variant={navigation.activeAccountId === account.id ? "secondary" : "ghost"}
               className="w-full justify-start"
               asChild
             >
@@ -120,7 +122,7 @@ export function Sidebar({ accounts, unreadCount, hasSendAccounts }: SidebarProps
 
       <div className="space-y-1 p-3">
         <SyncAllButton />
-        <Button variant={isAccountsView ? "secondary" : "ghost"} className="w-full justify-start" asChild>
+        <Button variant={navigation.isAccountsView ? "secondary" : "ghost"} className="w-full justify-start" asChild>
           <Link href="/accounts">
             <Settings className="mr-2 h-4 w-4" />
             管理账号

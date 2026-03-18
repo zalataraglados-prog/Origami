@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { toPublicUrl, withHttpsPreviewCookieCompat } from "@/lib/request-origin";
-import { getSessionCookieName, getSessionCookieOptions } from "@/lib/session";
 import { toPublicUrl } from "@/lib/request-origin";
 import { withHttpsPreviewCookieCompat } from "@/lib/cookie-compat";
+import { getSessionCookieName, getSessionCookieOptions } from "@/lib/session";
 
 export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true });

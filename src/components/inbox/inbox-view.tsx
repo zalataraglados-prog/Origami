@@ -27,6 +27,11 @@ import {
 } from "@/app/actions/email";
 import type { Email, EmailListItem, Attachment } from "@/lib/db/schema";
 import { buildInboxHref } from "@/lib/inbox-route";
+import {
+  applyInboxEmailPatch,
+  buildInboxSearchNavigationState,
+  resolveVisibleSelectedMailId,
+} from "./inbox-view-state";
 
 interface InboxViewProps {
   initialEmails: EmailListItem[];
@@ -125,7 +130,10 @@ export function InboxView({
   }, [initialEmails, selectedId, toast]);
 
   useEffect(() => {
-    if (selectedId && !emails.some((email) => email.id === selectedId)) {
+    if (!selectedId) return;
+
+    const nextSelectedId = resolveVisibleSelectedMailId(selectedId, emails);
+    if (!nextSelectedId) {
       router.replace(buildCurrentInboxHref({ mailId: undefined }), { scroll: false });
     }
   }, [buildCurrentInboxHref, emails, router, selectedId]);
@@ -141,23 +149,19 @@ export function InboxView({
             search: normalizedQuery || undefined,
             starred,
           });
+          const nextState = buildInboxSearchNavigationState({
+            accountId,
+            starred,
+            query: normalizedQuery,
+            selectedId,
+            results,
+          });
+
           setEmails(results);
           setSelectedIds([]);
-          setActiveSearch(normalizedQuery);
+          setActiveSearch(nextState.normalizedQuery);
 
-          const nextMailId = selectedId && results.some((email) => email.id === selectedId)
-            ? selectedId
-            : undefined;
-
-          router.replace(
-            buildInboxHref({
-              accountId,
-              starred,
-              search: normalizedQuery,
-              mailId: nextMailId,
-            }),
-            { scroll: false }
-          );
+          router.replace(nextState.href, { scroll: false });
         } catch (error) {
           const message = error instanceof Error ? error.message : "搜索失败，请换个关键词重试。";
           toast({
@@ -198,21 +202,13 @@ export function InboxView({
     let removedSelectedEmail = false;
 
     setEmails((current) => {
-      const updated = current
-        .map((email) =>
-          email.id === emailId ? { ...email, ...patch } : email
-        )
-        .filter((email) => {
-          if (email.localArchived === 1) return false;
-          if (email.localSnoozeUntil && email.localSnoozeUntil > now) return false;
-          if (starred && email.isStarred !== 1) return false;
-          return true;
-        });
-
-      removedSelectedEmail =
-        emailId === selectedId && !updated.some((email) => email.id === emailId);
-
-      return updated;
+      const nextState = applyInboxEmailPatch(current, emailId, patch, {
+        starred,
+        nowTs: now,
+        selectedId,
+      });
+      removedSelectedEmail = nextState.removedSelectedEmail;
+      return nextState.emails;
     });
 
     if (removedSelectedEmail) {

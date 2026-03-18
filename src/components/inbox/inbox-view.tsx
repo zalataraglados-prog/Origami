@@ -8,6 +8,7 @@ import { SnoozeDialog } from "./snooze-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { getClientActionErrorMessage, useClientAction } from "@/hooks/use-client-action";
 import {
   Archive,
   CheckCircle2,
@@ -46,6 +47,7 @@ export function InboxView({
 }: InboxViewProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { isPending: isMutating, run } = useClientAction();
   const [emails, setEmails] = useState(initialEmails);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
@@ -54,11 +56,12 @@ export function InboxView({
   const [search, setSearch] = useState(initialSearch);
   const [activeSearch, setActiveSearch] = useState(initialSearch);
   const [batchSnoozeOpen, setBatchSnoozeOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isSearching, startSearchTransition] = useTransition();
 
   const selectedId = selectedMailId ?? null;
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allVisibleSelected = emails.length > 0 && selectedIds.length === emails.length;
+  const isPending = isSearching || isMutating;
 
   const buildCurrentInboxHref = useCallback(
     (overrides?: { search?: string; mailId?: string }) =>
@@ -131,7 +134,7 @@ export function InboxView({
     (query: string) => {
       const normalizedQuery = query.trim();
 
-      startTransition(async () => {
+      startSearchTransition(async () => {
         try {
           const results = await getEmails({
             accountId,
@@ -234,11 +237,20 @@ export function InboxView({
     router.replace(buildCurrentInboxHref({ mailId: undefined }), { scroll: false });
   }
 
-  async function runBatchAction(action: () => Promise<void>) {
+  function runBatchAction(
+    action: () => Promise<void>,
+    errorTitle: string
+  ) {
     if (selectedIds.length === 0) return;
-    startTransition(async () => {
-      await action();
-      router.refresh();
+
+    void run({
+      action,
+      refresh: true,
+      errorToast: (error) => ({
+        title: errorTitle,
+        description: getClientActionErrorMessage(error),
+        variant: "error",
+      }),
     });
   }
 
@@ -293,11 +305,12 @@ export function InboxView({
                   <Button
                     size="sm"
                     variant="outline"
+                    disabled={isPending}
                     onClick={() =>
                       runBatchAction(async () => {
                         await markDone(selectedIds, true);
                         applyBatchPatch(selectedIds, { localDone: 1 });
-                      })
+                      }, "批量标记 Done 失败")
                     }
                   >
                     <CheckCircle2 className="h-4 w-4" /> Done
@@ -305,37 +318,39 @@ export function InboxView({
                   <Button
                     size="sm"
                     variant="outline"
+                    disabled={isPending}
                     onClick={() =>
                       runBatchAction(async () => {
                         await markArchived(selectedIds, true);
                         applyBatchPatch(selectedIds, { localArchived: 1 });
-                      })
+                      }, "批量归档失败")
                     }
                   >
                     <Archive className="h-4 w-4" /> 归档
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => setBatchSnoozeOpen(true)}>
+                  <Button size="sm" variant="outline" onClick={() => setBatchSnoozeOpen(true)} disabled={isPending}>
                     <Clock3 className="h-4 w-4" /> 稍后看
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    disabled={isPending}
                     onClick={() =>
                       runBatchAction(async () => {
                         await setStarred(selectedIds, true);
                         applyBatchPatch(selectedIds, { isStarred: 1 });
-                      })
+                      }, "批量标星失败")
                     }
                   >
                     <Star className="h-4 w-4" /> 批量标星
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])} disabled={isPending}>
                     清空选择
                   </Button>
                 </div>
               </div>
             ) : (
-              <Button size="sm" variant="ghost" onClick={handleSelectAllVisible}>
+              <Button size="sm" variant="ghost" onClick={handleSelectAllVisible} disabled={isPending}>
                 {emails.length > 0 ? (allVisibleSelected ? "取消全选" : "全选当前列表") : "暂无可选邮件"}
               </Button>
             )}
@@ -387,11 +402,20 @@ export function InboxView({
         onOpenChange={setBatchSnoozeOpen}
         title="批量设置稍后看"
         onConfirm={async (value) => {
-          await snooze(selectedIds, value);
-          applyBatchPatch(selectedIds, {
-            localSnoozeUntil: Math.floor(new Date(value).getTime() / 1000),
+          await run({
+            action: () => snooze(selectedIds, value),
+            refresh: true,
+            onSuccess: () => {
+              applyBatchPatch(selectedIds, {
+                localSnoozeUntil: Math.floor(new Date(value).getTime() / 1000),
+              });
+            },
+            errorToast: (error) => ({
+              title: "批量设置稍后看失败",
+              description: getClientActionErrorMessage(error),
+              variant: "error",
+            }),
           });
-          router.refresh();
         }}
       />
     </>

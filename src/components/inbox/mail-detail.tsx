@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -81,6 +82,7 @@ export function MailDetail({
   onClose,
   onLocalUpdate,
 }: MailDetailProps) {
+  const router = useRouter();
   const { isPending, run } = useClientAction();
   const [snoozeOpen, setSnoozeOpen] = useState(false);
   const [nowTs] = useState(() => Math.floor(Date.now() / 1000));
@@ -176,6 +178,20 @@ export function MailDetail({
 
   const isSnoozed = !!email.localSnoozeUntil && email.localSnoozeUntil > nowTs;
   const hydrationStatus = isHydrating ? "hydrating" : email.hydrationStatus;
+  const shouldPollStatus =
+    hydrationStatus === "hydrating" ||
+    email.readWriteBackStatus === "pending" ||
+    email.starWriteBackStatus === "pending";
+
+  useEffect(() => {
+    if (!shouldPollStatus) return;
+
+    const timer = window.setTimeout(() => {
+      router.refresh();
+    }, 2000);
+
+    return () => window.clearTimeout(timer);
+  }, [router, shouldPollStatus]);
 
   return (
     <>

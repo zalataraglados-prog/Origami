@@ -1,12 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
 
-// Mock getGitHubAuthUrl to avoid env requirements
 vi.mock("@/lib/github-auth", () => ({
   getGitHubAuthUrl: (state: string) => `https://github.com/login/oauth/authorize?state=${state}`,
 }));
 
-// Mock cookie helper values so we can assert cookie attributes without needing secrets
 vi.mock("@/lib/session", () => ({
   createOAuthStateCookieValue: async (state: string) => `${state}.sig`,
   getOAuthStateCookieName: () => "origami_github_state",
@@ -18,6 +16,10 @@ vi.mock("@/lib/session", () => ({
     maxAge: 600,
   }),
 }));
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("GET /api/auth/github/start", () => {
   it("sets SameSite=None + Secure for HTTPS preview in non-production", async () => {
@@ -37,7 +39,5 @@ describe("GET /api/auth/github/start", () => {
     expect(setCookie).toMatch(/origami_github_state=/);
     expect(setCookie.toLowerCase()).toContain("samesite=none");
     expect(setCookie.toLowerCase()).toContain("secure");
-
-    vi.unstubAllEnvs();
   });
 });

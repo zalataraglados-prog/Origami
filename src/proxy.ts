@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { toPublicUrl } from "@/lib/request-origin";
 import { decodeSession } from "@/lib/session";
 
 const PUBLIC_PATHS = ["/login", "/api/auth", "/api/oauth", "/api/cron"];
@@ -18,7 +19,7 @@ export async function proxy(request: NextRequest) {
   const session = await decodeSession(request.cookies.get("origami_session")?.value ?? null);
   if (session) {
     if (!session.setupComplete && pathname !== "/setup") {
-      return NextResponse.redirect(new URL("/setup", request.url));
+      return NextResponse.redirect(toPublicUrl(request, "/setup"));
     }
     return NextResponse.next();
   }
@@ -27,14 +28,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // In proxied/preview environments (e.g. Codespaces), redirects from a Server Action
-  // request can surface as an opaque "Invalid Server Actions request".
-  // Prefer an explicit 401 so the client gets a clear auth failure.
   if (request.headers.get("next-action")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.redirect(new URL("/login", request.url));
+  return NextResponse.redirect(toPublicUrl(request, "/login"));
 }
 
 export const config = {

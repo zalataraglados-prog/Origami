@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { toPublicUrl, withHttpsPreviewCookieCompat } from "@/lib/request-origin";
 import { markInstallationSetupComplete } from "@/lib/queries/installation";
 import {
   createSessionCookieValue,

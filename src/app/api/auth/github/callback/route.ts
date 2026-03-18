@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { claimInstallation, getInstallation } from "@/lib/queries/installation";
 import { exchangeGitHubCode, fetchGitHubUser, isAllowedGitHubUser } from "@/lib/github-auth";
+import { toPublicUrl, withHttpsPreviewCookieCompat } from "@/lib/request-origin";
 import {
   createSessionCookieValue,
   getOAuthStateCookieName,
@@ -9,8 +10,6 @@ import {
   getSessionCookieOptions,
   verifyOAuthStateCookie,
 } from "@/lib/session";
-import { toPublicUrl } from "@/lib/request-origin";
-import { withHttpsPreviewCookieCompat } from "@/lib/cookie-compat";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -53,7 +52,6 @@ export async function GET(request: NextRequest) {
 
     const redirectUrl = toPublicUrl(request, installation.setupCompletedAt ? "/" : "/setup");
     const response = NextResponse.redirect(redirectUrl);
-
     response.cookies.set(
       getSessionCookieName(),
       sessionValue,

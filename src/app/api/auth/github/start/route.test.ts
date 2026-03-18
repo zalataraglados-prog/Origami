@@ -21,8 +21,7 @@ vi.mock("@/lib/session", () => ({
 
 describe("GET /api/auth/github/start", () => {
   it("sets SameSite=None + Secure for HTTPS preview in non-production", async () => {
-    const oldEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
 
     const req = new Request("https://example.test/api/auth/github/start", {
       headers: {
@@ -39,6 +38,6 @@ describe("GET /api/auth/github/start", () => {
     expect(setCookie.toLowerCase()).toContain("samesite=none");
     expect(setCookie.toLowerCase()).toContain("secure");
 
-    process.env.NODE_ENV = oldEnv;
+    vi.unstubAllEnvs();
   });
 });

@@ -10,17 +10,7 @@ import {
   verifyOAuthStateCookie,
 } from "@/lib/session";
 import { toPublicUrl } from "@/lib/request-origin";
-
-function withHttpsPreviewCookieCompat(request: NextRequest, opts: ReturnType<typeof getSessionCookieOptions>) {
-  // Preview/proxy environments (e.g. Codespaces) can behave like cross-site contexts.
-  // SameSite=Lax cookies may be dropped on POST/XHR requests (including Server Actions).
-  const proto = request.headers.get("x-forwarded-proto") ?? request.nextUrl.protocol.replace(":", "");
-  const isHttps = proto === "https";
-  if (process.env.NODE_ENV !== "production" && isHttps) {
-    return { ...opts, secure: true, sameSite: "none" as const };
-  }
-  return opts;
-}
+import { withHttpsPreviewCookieCompat } from "@/lib/cookie-compat";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");

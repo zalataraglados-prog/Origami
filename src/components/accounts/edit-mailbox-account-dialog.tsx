@@ -215,7 +215,7 @@ export function EditMailboxAccountDialog({ account }: { account: AccountSettings
                     checked={imapSecure}
                     onChange={(event) => setImapSecure(event.target.checked)}
                   />
-                  {t.editDialog.ssl}
+                  {t.editDialog.imapSsl}
                 </label>
               </div>
               <div className="space-y-2">
@@ -244,7 +244,7 @@ export function EditMailboxAccountDialog({ account }: { account: AccountSettings
                     checked={smtpSecure}
                     onChange={(event) => setSmtpSecure(event.target.checked)}
                   />
-                  {t.editDialog.ssl}
+                  {t.editDialog.smtpSsl}
                 </label>
               </div>
             </div>

@@ -122,7 +122,7 @@ describe("writeBack service", () => {
     expect(result).toEqual({
       success: false,
       skipped: true,
-      error: "missing scope mail.readwrite",
+      error: "origami-runtime:WRITEBACK_OUTLOOK_SCOPE_MISSING",
     });
     expect(outlookMarkMessageReadMock).not.toHaveBeenCalled();
   });

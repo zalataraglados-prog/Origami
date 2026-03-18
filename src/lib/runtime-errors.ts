@@ -5,7 +5,11 @@ const RUNTIME_ERROR_PREFIX = "origami-runtime:";
 type RuntimeErrorCode =
   | "HYDRATION_ACCOUNT_UNAVAILABLE"
   | "HYDRATION_REMOTE_NOT_FOUND"
-  | "WRITEBACK_MISSING_REMOTE_ID";
+  | "WRITEBACK_MISSING_REMOTE_ID"
+  | "WRITEBACK_INVALID_CREDENTIALS"
+  | "WRITEBACK_GMAIL_SCOPE_MISSING"
+  | "WRITEBACK_OUTLOOK_SCOPE_MISSING"
+  | "WRITEBACK_UNSUPPORTED_PROVIDER";
 
 function getRuntimeErrorMessage(locale: AppLocale, code: RuntimeErrorCode) {
   switch (code) {
@@ -42,6 +46,50 @@ function getRuntimeErrorMessage(locale: AppLocale, code: RuntimeErrorCode) {
         default:
           return "缺少远端邮件 ID，无法回写。";
       }
+    case "WRITEBACK_INVALID_CREDENTIALS":
+      switch (locale) {
+        case "zh-TW":
+          return "目前帳號憑證無效或無法解析，無法回寫。";
+        case "en":
+          return "The current account credentials are invalid or unreadable, so write-back could not run.";
+        case "ja":
+          return "現在のアカウント認証情報が無効、または解析できないため、書き戻しを実行できません。";
+        default:
+          return "当前账号凭据无效或无法解析，无法回写。";
+      }
+    case "WRITEBACK_GMAIL_SCOPE_MISSING":
+      switch (locale) {
+        case "zh-TW":
+          return "目前帳號缺少 Gmail modify 權限，無法回寫。";
+        case "en":
+          return "This account is missing Gmail modify permission, so write-back could not run.";
+        case "ja":
+          return "このアカウントには Gmail modify 権限がないため、書き戻しを実行できません。";
+        default:
+          return "当前账号缺少 Gmail modify 权限，无法回写。";
+      }
+    case "WRITEBACK_OUTLOOK_SCOPE_MISSING":
+      switch (locale) {
+        case "zh-TW":
+          return "目前帳號缺少 Outlook delegated 寫回權限，無法回寫。";
+        case "en":
+          return "This account is missing Outlook delegated write-back permission, so write-back could not run.";
+        case "ja":
+          return "このアカウントには Outlook delegated の書き戻し権限がないため、書き戻しを実行できません。";
+        default:
+          return "当前账号缺少 Outlook delegated 写回权限，无法回写。";
+      }
+    case "WRITEBACK_UNSUPPORTED_PROVIDER":
+      switch (locale) {
+        case "zh-TW":
+          return "目前 provider 不支援這個回寫操作。";
+        case "en":
+          return "The current provider does not support this write-back operation.";
+        case "ja":
+          return "現在の provider はこの書き戻し操作に対応していません。";
+        default:
+          return "当前 provider 不支持这个写回操作。";
+      }
   }
 }
 
@@ -51,7 +99,11 @@ function parseRuntimeError(error: string): { code: RuntimeErrorCode } | null {
     if (
       code === "HYDRATION_ACCOUNT_UNAVAILABLE" ||
       code === "HYDRATION_REMOTE_NOT_FOUND" ||
-      code === "WRITEBACK_MISSING_REMOTE_ID"
+      code === "WRITEBACK_MISSING_REMOTE_ID" ||
+      code === "WRITEBACK_INVALID_CREDENTIALS" ||
+      code === "WRITEBACK_GMAIL_SCOPE_MISSING" ||
+      code === "WRITEBACK_OUTLOOK_SCOPE_MISSING" ||
+      code === "WRITEBACK_UNSUPPORTED_PROVIDER"
     ) {
       return { code };
     }
@@ -64,8 +116,20 @@ function parseRuntimeError(error: string): { code: RuntimeErrorCode } | null {
     case "远端未找到这封邮件，可能已被删除或移动。":
       return { code: "HYDRATION_REMOTE_NOT_FOUND" };
     case "missing remote message id":
+    case "missing remoteMessageId":
       return { code: "WRITEBACK_MISSING_REMOTE_ID" };
+    case "invalid credentials":
+      return { code: "WRITEBACK_INVALID_CREDENTIALS" };
+    case "missing scope https://www.googleapis.com/auth/gmail.modify":
+      return { code: "WRITEBACK_GMAIL_SCOPE_MISSING" };
+    case "missing scope mail.readwrite":
+      return { code: "WRITEBACK_OUTLOOK_SCOPE_MISSING" };
+    case "unsupported provider":
+      return { code: "WRITEBACK_UNSUPPORTED_PROVIDER" };
     default:
+      if (error.startsWith("unsupported provider:")) {
+        return { code: "WRITEBACK_UNSUPPORTED_PROVIDER" };
+      }
       return null;
   }
 }

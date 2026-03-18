@@ -2,6 +2,7 @@ import { parseAccountCredentials, persistProviderCredentialsIfNeeded } from "@/l
 import type { Account } from "@/lib/db/schema";
 import type { AppLocale } from "@/i18n/locale";
 import { resolveGmailOAuthApp, resolveOutlookOAuthApp } from "@/lib/oauth-apps";
+import { encodeRuntimeError } from "@/lib/runtime-errors";
 import { GmailProvider, GMAIL_MODIFY_SCOPE, hasGmailModifyScope } from "./gmail";
 import { OutlookProvider, OUTLOOK_REQUIRED_WRITEBACK_SCOPE, hasOutlookWriteBackScope } from "./outlook";
 import { QQProvider } from "./qq";
@@ -155,13 +156,13 @@ export function getAccountWriteBackAvailability(
 async function writeBackReadGmail(account: Account, remoteMessageId: string): Promise<WriteBackResult> {
   const creds = tryParseCredentials(account);
   if (!creds) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   const scopes = Array.isArray(creds.scopes) ? creds.scopes.map(String) : [];
   if (!hasGmailModifyScope(scopes)) {
     logWriteBackWarning(account, "read", `missing scope ${GMAIL_MODIFY_SCOPE}`);
-    return { success: false, skipped: true, error: `missing scope ${GMAIL_MODIFY_SCOPE}` };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_GMAIL_SCOPE_MISSING") };
   }
 
   const oauthApp = await resolveGmailOAuthApp(account.oauthAppId ?? String(creds.appId ?? "default"));
@@ -191,13 +192,13 @@ async function writeBackStarGmail(
 ): Promise<WriteBackResult> {
   const creds = tryParseCredentials(account);
   if (!creds) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   const scopes = Array.isArray(creds.scopes) ? creds.scopes.map(String) : [];
   if (!hasGmailModifyScope(scopes)) {
     logWriteBackWarning(account, "star", `missing scope ${GMAIL_MODIFY_SCOPE}`);
-    return { success: false, skipped: true, error: `missing scope ${GMAIL_MODIFY_SCOPE}` };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_GMAIL_SCOPE_MISSING") };
   }
 
   const oauthApp = await resolveGmailOAuthApp(account.oauthAppId ?? String(creds.appId ?? "default"));
@@ -223,7 +224,7 @@ async function writeBackStarGmail(
 async function writeBackReadOutlook(account: Account, remoteMessageId: string): Promise<WriteBackResult> {
   const creds = tryParseCredentials(account);
   if (!creds) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   const scopes = Array.isArray(creds.scopes) ? creds.scopes.map(String) : [];
@@ -232,7 +233,7 @@ async function writeBackReadOutlook(account: Account, remoteMessageId: string): 
     return {
       success: false,
       skipped: true,
-      error: `missing scope ${OUTLOOK_REQUIRED_WRITEBACK_SCOPE}`,
+      error: encodeRuntimeError("WRITEBACK_OUTLOOK_SCOPE_MISSING"),
     };
   }
 
@@ -263,7 +264,7 @@ async function writeBackStarOutlook(
 ): Promise<WriteBackResult> {
   const creds = tryParseCredentials(account);
   if (!creds) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   const scopes = Array.isArray(creds.scopes) ? creds.scopes.map(String) : [];
@@ -272,7 +273,7 @@ async function writeBackStarOutlook(
     return {
       success: false,
       skipped: true,
-      error: `missing scope ${OUTLOOK_REQUIRED_WRITEBACK_SCOPE}`,
+      error: encodeRuntimeError("WRITEBACK_OUTLOOK_SCOPE_MISSING"),
     };
   }
 
@@ -299,7 +300,7 @@ async function writeBackStarOutlook(
 async function writeBackReadQq(account: Account, remoteMessageId: string): Promise<WriteBackResult> {
   const creds = tryParseCredentials(account);
   if (!creds) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   const provider = new QQProvider({
@@ -324,7 +325,7 @@ async function writeBackStarQq(
 ): Promise<WriteBackResult> {
   const creds = tryParseCredentials(account);
   if (!creds) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   const provider = new QQProvider({
@@ -345,7 +346,7 @@ async function writeBackStarQq(
 async function writeBackReadImapSmtp(account: Account, remoteMessageId: string): Promise<WriteBackResult> {
   const provider = createImapSmtpProviderForAccount(account);
   if (!provider) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   try {
@@ -365,7 +366,7 @@ async function writeBackStarImapSmtp(
 ): Promise<WriteBackResult> {
   const provider = createImapSmtpProviderForAccount(account);
   if (!provider) {
-    return { success: false, skipped: true, error: "invalid credentials" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS") };
   }
 
   try {
@@ -387,7 +388,7 @@ export async function writeBackRead(
   }
 
   if (!remoteMessageId) {
-    return { success: false, skipped: true, error: "missing remoteMessageId" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_MISSING_REMOTE_ID") };
   }
 
   switch (account.provider) {
@@ -400,7 +401,11 @@ export async function writeBackRead(
     case "imap_smtp":
       return writeBackReadImapSmtp(account, remoteMessageId);
     default:
-      return { success: false, skipped: true, error: `unsupported provider: ${account.provider}` };
+      return {
+        success: false,
+        skipped: true,
+        error: encodeRuntimeError("WRITEBACK_UNSUPPORTED_PROVIDER"),
+      };
   }
 }
 
@@ -414,7 +419,7 @@ export async function writeBackStar(
   }
 
   if (!remoteMessageId) {
-    return { success: false, skipped: true, error: "missing remoteMessageId" };
+    return { success: false, skipped: true, error: encodeRuntimeError("WRITEBACK_MISSING_REMOTE_ID") };
   }
 
   switch (account.provider) {
@@ -427,6 +432,10 @@ export async function writeBackStar(
     case "imap_smtp":
       return writeBackStarImapSmtp(account, remoteMessageId, starred);
     default:
-      return { success: false, skipped: true, error: `unsupported provider: ${account.provider}` };
+      return {
+        success: false,
+        skipped: true,
+        error: encodeRuntimeError("WRITEBACK_UNSUPPORTED_PROVIDER"),
+      };
   }
 }

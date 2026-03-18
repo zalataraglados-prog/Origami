@@ -16,6 +16,13 @@ describe("runtime error mapping", () => {
         error: encodeRuntimeError("WRITEBACK_MISSING_REMOTE_ID"),
       })
     ).toBe("リモートのメッセージ ID がないため、書き戻しを実行できません。");
+
+    expect(
+      mapRuntimeErrorToMessage({
+        locale: "en",
+        error: encodeRuntimeError("WRITEBACK_INVALID_CREDENTIALS"),
+      })
+    ).toBe("The current account credentials are invalid or unreadable, so write-back could not run.");
   });
 
   it("maps legacy hard-coded runtime errors for backward compatibility", () => {
@@ -32,7 +39,14 @@ describe("runtime error mapping", () => {
         error: "missing remote message id",
       })
     ).toBe("The remote message ID is missing, so write-back could not run.");
-    
+
+    expect(
+      mapRuntimeErrorToMessage({
+        locale: "zh-CN",
+        error: "missing scope mail.readwrite",
+      })
+    ).toBe("当前账号缺少 Outlook delegated 写回权限，无法回写。");
+
     expect(
       mapRuntimeErrorToMessage({
         locale: "en",
